@@ -1,0 +1,265 @@
+[
+    {
+        "title": "SF Rent Board – Decrease in Housing Services (Core Principle)",
+        "url": "https://sf.gov/information/rent-board-fee-and-petitions",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "rent reduction",
+            "housing services",
+            "rent board"
+        ],
+        "scenario_tags": [
+            "rent_reduction",
+            "loss_of_services"
+        ],
+        "legal_text": "The San Francisco Rent Board allows tenants to file petitions for rent reductions when housing services are reduced or not maintained. The reduction is based on the decreased value of the tenancy rather than a fixed dollar amount.",
+        "plain_summary": "Rent reductions are based on how much value you lost, not a fixed price list.",
+        "tenant_actions": [
+            "Document loss of service",
+            "File Rent Board petition",
+            "Provide evidence"
+        ],
+        "repair_timeline": "Applies after failure to restore service",
+        "enforcement_agencies": [
+            "SF Rent Board"
+        ],
+        "rent_reduction_notes": "Based on percentage loss of value"
+    },
+    {
+        "title": "SF Rent Reduction – No Heat (Winter Estimate)",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "no heat",
+            "rent reduction",
+            "winter"
+        ],
+        "scenario_tags": [
+            "no_heat",
+            "rent_reduction"
+        ],
+        "legal_text": "Failure to provide adequate heating may qualify as a substantial reduction in housing services under SF Rent Ordinance.",
+        "plain_summary": "No heat is a major violation and can significantly reduce rent.",
+        "tenant_actions": [
+            "Notify landlord",
+            "Track days without heat",
+            "File petition"
+        ],
+        "repair_timeline": "24–72 hours expected for urgent repair",
+        "enforcement_agencies": [
+            "SF Rent Board",
+            "DBI"
+        ],
+        "rent_reduction_notes": "Estimated 15%–25% monthly rent reduction"
+    },
+    {
+        "title": "SF Rent Reduction – Total Water Loss",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "no water",
+            "habitability"
+        ],
+        "scenario_tags": [
+            "no_water",
+            "rent_reduction"
+        ],
+        "legal_text": "Loss of water service renders a unit potentially uninhabitable and may justify significant rent reduction.",
+        "plain_summary": "No water can make your unit legally unlivable.",
+        "tenant_actions": [
+            "Report immediately",
+            "Document outage",
+            "File complaint"
+        ],
+        "repair_timeline": "Immediate emergency repair required",
+        "enforcement_agencies": [
+            "DBI",
+            "DPH"
+        ],
+        "rent_reduction_notes": "Estimated 50%–100% rent reduction"
+    },
+    {
+        "title": "SF Rent Reduction – Pest Infestation",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "pests",
+            "infestation"
+        ],
+        "scenario_tags": [
+            "pest_infestation",
+            "rent_reduction"
+        ],
+        "legal_text": "Severe pest infestations may constitute a reduction in housing services and a violation of habitability standards.",
+        "plain_summary": "Serious pest problems can justify rent reduction.",
+        "tenant_actions": [
+            "Take photos",
+            "Report infestation",
+            "Request inspection"
+        ],
+        "repair_timeline": "Prompt response required",
+        "enforcement_agencies": [
+            "DPH"
+        ],
+        "rent_reduction_notes": "Estimated 10%–20%"
+    },
+    {
+        "title": "SF Rent Reduction – Mold Exposure",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "mold",
+            "health"
+        ],
+        "scenario_tags": [
+            "mold",
+            "rent_reduction"
+        ],
+        "legal_text": "Mold affecting health may qualify as a reduction in housing services and trigger enforcement action.",
+        "plain_summary": "Mold that affects breathing or health can lower your rent.",
+        "tenant_actions": [
+            "Document mold",
+            "Request repair",
+            "File complaint"
+        ],
+        "repair_timeline": "Urgent if health risk",
+        "enforcement_agencies": [
+            "DPH"
+        ],
+        "rent_reduction_notes": "Estimated 10%–20%"
+    },
+    {
+        "title": "SF Rent Reduction – Broken Elevator",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "elevator",
+            "access"
+        ],
+        "scenario_tags": [
+            "elevator",
+            "rent_reduction"
+        ],
+        "legal_text": "Loss of elevator service in multi-story buildings may qualify as a decrease in housing services.",
+        "plain_summary": "If your elevator breaks, especially on upper floors, your rent can be reduced.",
+        "tenant_actions": [
+            "Report issue",
+            "Track outage duration"
+        ],
+        "repair_timeline": "Reasonable repair time required",
+        "enforcement_agencies": [
+            "DBI"
+        ],
+        "rent_reduction_notes": "Estimated 10%–15%"
+    },
+    {
+        "title": "SF Rent Reduction – Non-Working Toilet",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Habitability Law",
+        "keywords": [
+            "toilet",
+            "sanitation"
+        ],
+        "scenario_tags": [
+            "plumbing_failure",
+            "rent_reduction"
+        ],
+        "legal_text": "Failure to provide functioning sanitation facilities may render a unit untenantable.",
+        "plain_summary": "No working toilet is a serious habitability violation.",
+        "tenant_actions": [
+            "Report immediately",
+            "Request urgent repair"
+        ],
+        "repair_timeline": "Immediate repair required",
+        "enforcement_agencies": [
+            "DBI",
+            "DPH"
+        ],
+        "rent_reduction_notes": "Estimated 20%–40%"
+    },
+    {
+        "title": "Rent Credit Accrual Logic",
+        "url": "internal://sf_housing_hub_logic",
+        "jurisdiction": "local",
+        "category": "General FAQ",
+        "keywords": [
+            "rent credit",
+            "calculation"
+        ],
+        "scenario_tags": [
+            "rent_credit",
+            "calculation"
+        ],
+        "legal_text": "Tenants may claim rent reductions for periods where services were not provided, calculated based on duration and severity.",
+        "plain_summary": "The longer the issue continues, the more rent credit you build.",
+        "tenant_actions": [
+            "Track start date",
+            "Track daily impact",
+            "Calculate total"
+        ],
+        "repair_timeline": "Starts after repair deadline expires",
+        "enforcement_agencies": [
+            "SF Rent Board"
+        ],
+        "rent_reduction_notes": "Accrues daily based on % loss"
+    },
+    {
+        "title": "SF Rent Board Petition – Form 516A",
+        "url": "https://sf.gov",
+        "jurisdiction": "local",
+        "category": "Rent ordinance",
+        "keywords": [
+            "petition",
+            "516A"
+        ],
+        "scenario_tags": [
+            "petition",
+            "rent_reduction"
+        ],
+        "legal_text": "Tenants may file a petition for arbitration to request rent reduction due to decreased housing services.",
+        "plain_summary": "You can officially request a rent reduction through a Rent Board petition.",
+        "tenant_actions": [
+            "Complete Form 516A",
+            "Attach evidence",
+            "Submit"
+        ],
+        "repair_timeline": "After issue persists",
+        "enforcement_agencies": [
+            "SF Rent Board"
+        ],
+        "rent_reduction_notes": "Determined case-by-case"
+    },
+    {
+        "title": "SF Harassment Law – Treble Damages",
+        "url": "https://codelibrary.amlegal.com",
+        "jurisdiction": "local",
+        "category": "Harassment / intimidation",
+        "keywords": [
+            "harassment",
+            "treble damages"
+        ],
+        "scenario_tags": [
+            "harassment"
+        ],
+        "legal_text": "Tenant harassment may result in monetary penalties including treble damages under local law.",
+        "plain_summary": "If your landlord harasses you, you may be entitled to triple damages.",
+        "tenant_actions": [
+            "Log incidents",
+            "Collect evidence",
+            "Seek legal help"
+        ],
+        "repair_timeline": "Applies after pattern established",
+        "enforcement_agencies": [
+            "Courts",
+            "Rent Board"
+        ],
+        "rent_reduction_notes": "Can multiply total claim"
+    }
+]

@@ -1,0 +1,55 @@
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+!.env.demo.example
+!.env.demo.scripts.example
+
+# Service accounts and credentials
+*service-account*.json
+*service_account*.json
+*storage*.json
+*-credentials.json
+*_credentials.json
+*credentials*.json
+*credential*.json
+*secret*.json
+*secrets*.json
+credentials/
+secrets/
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Local dependency/build artifacts
+node_modules/
+dist/
+
+# Supabase local/link state
+supabase/.temp/
+.supabase/
+
+# Sensitive source material should not live in the demo workspace
+notes/
+scratch/
+qdrant_data/
+qdrant_env/
+evidence/
+evidence-exports/
+airtable-exports/
+recordings/
+walkthrough-recordings/
+
+# Generated check output
+build_error.txt
+compile_check_after_airtable_fix.txt
+compile_check_final.txt
+compile_errors.txt
+compile_errors_new.txt
+final_check_v5.txt
+final_check_v6.txt
+top_20_errors.txt
+tsc_output.txt
+ts_errors_current.txt
+clean_errors.txt
