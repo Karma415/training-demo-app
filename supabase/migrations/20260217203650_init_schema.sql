@@ -84,6 +84,7 @@ create table tenants (
   email text,
   phone text,
   status tenant_status default 'current_resident',
+  role text default 'tenant',
   birthday_opt_in boolean default false,
   created_at timestamptz default now()
 );

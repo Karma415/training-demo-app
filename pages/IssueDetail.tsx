@@ -10,7 +10,8 @@ import RentCalculator from '../components/RentCalculator';
 import AgencySubmission from '../components/AgencySubmission';
 import LegalNoticeBuilder from '../components/LegalNoticeBuilder';
 import LegalIssueDetail from '../components/LegalIssueDetail';
-import { getEvidenceThumbnailUrl } from '../utils/evidenceFiles';
+import SecureEvidenceThumbnail from '../components/SecureEvidenceThumbnail';
+import { openSecureEvidence } from '../utils/evidenceFiles';
 
 const toInteractionTypeValue = (value?: string) => {
     switch (value) {
@@ -226,16 +227,26 @@ const IssueDetail: React.FC = () => {
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
                             {evidenceFiles.map(file => {
                                 const hasMetadata = file.metadata && (file.metadata.latitude || file.metadata.timestamp);
-                                const thumbnailUrl = getEvidenceThumbnailUrl(file);
                                 return (
-                                <a key={file.id} href={file.file_path} target="_blank" rel="noreferrer" className="block relative aspect-square rounded-2xl overflow-hidden shadow-md group border border-slate-100 bg-slate-100/50">
-                                    {thumbnailUrl ? (
-                                        <img src={thumbnailUrl} alt={file.metadata?.filename || "Evidence"} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
-                                            <i className="fa-solid fa-file text-4xl"></i>
-                                        </div>
-                                    )}
+                                <button
+                                    key={file.id}
+                                    type="button"
+                                    onClick={() => openSecureEvidence(file).catch(error => {
+                                        console.error('Failed to open evidence:', error);
+                                        alert('Unable to open evidence. Please try again.');
+                                    })}
+                                    className="block relative aspect-square rounded-2xl overflow-hidden shadow-md group border border-slate-100 bg-slate-100/50"
+                                >
+                                    <SecureEvidenceThumbnail
+                                        evidenceId={file.id}
+                                        alt={file.metadata?.filename || "Evidence"}
+                                        className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                        fallback={
+                                            <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
+                                                <i className="fa-solid fa-file text-4xl"></i>
+                                            </div>
+                                        }
+                                    />
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
                                         <i className="fa-solid fa-expand text-white text-2xl mb-2 shadow-sm"></i>
                                         {hasMetadata && (
@@ -252,7 +263,7 @@ const IssueDetail: React.FC = () => {
                                             <i className="fa-solid fa-shield-halved mr-1.5"></i> Verifiable
                                         </div>
                                     )}
-                                </a>
+                                </button>
                             )})}
                         </div>
                     )}

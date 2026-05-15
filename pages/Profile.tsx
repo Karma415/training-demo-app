@@ -1,14 +1,22 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../services/supabase';
-import { User, Mail, Phone, Home, Save, CheckCircle2, Loader2, AlertCircle, Camera, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, Home, Save, CheckCircle2, Loader2, AlertCircle, Camera, Trash2, KeyRound, Eye, EyeOff } from 'lucide-react';
 
 const Profile: React.FC = () => {
     const { user, setUser } = useApp();
     const isAttorney = user.role === 'legal_counsel';
     const [isSaving, setIsSaving] = useState(false);
     const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+    const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+    const [isChangingPassword, setIsChangingPassword] = useState(false);
+    const [passwordData, setPasswordData] = useState({
+        newPassword: '',
+        confirmPassword: ''
+    });
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const toDateInputValue = (value?: string | null) => {
@@ -229,6 +237,40 @@ const Profile: React.FC = () => {
         } finally {
             setIsSaving(false);
             setTimeout(() => setMessage(null), 5000);
+        }
+    };
+
+    const handlePasswordChange = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setPasswordMessage(null);
+
+        if (passwordData.newPassword.length < 6) {
+            setPasswordMessage({ type: 'error', text: 'Password must be at least 6 characters.' });
+            return;
+        }
+
+        if (passwordData.newPassword !== passwordData.confirmPassword) {
+            setPasswordMessage({ type: 'error', text: 'Passwords do not match.' });
+            return;
+        }
+
+        try {
+            setIsChangingPassword(true);
+
+            const { error } = await supabase.auth.updateUser({
+                password: passwordData.newPassword
+            });
+
+            if (error) throw error;
+
+            setPasswordData({ newPassword: '', confirmPassword: '' });
+            setPasswordMessage({ type: 'success', text: 'Password updated successfully.' });
+        } catch (err: any) {
+            console.error('Failed to update password:', err);
+            setPasswordMessage({ type: 'error', text: err.message || 'Failed to update password. Please try again.' });
+        } finally {
+            setIsChangingPassword(false);
+            setTimeout(() => setPasswordMessage(null), 5000);
         }
     };
 
@@ -481,6 +523,87 @@ const Profile: React.FC = () => {
                             <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving Changes...</>
                         ) : (
                             <><Save className="w-5 h-5 mr-2" /> Save Settings</>
+                        )}
+                    </button>
+                </div>
+            </form>
+
+            <form onSubmit={handlePasswordChange} className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100 space-y-6 mt-8">
+                <div className="flex items-center gap-4 pb-4 border-b border-slate-100">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1e3a8a] flex items-center justify-center">
+                        <KeyRound className="w-6 h-6" />
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-800">Change Password</h2>
+                        <p className="text-sm text-slate-500 font-medium">Update the password used to sign in to your account.</p>
+                    </div>
+                </div>
+
+                {passwordMessage && (
+                    <div className={`p-4 rounded-xl flex items-center gap-3 text-sm font-bold ${passwordMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                        {passwordMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                        {passwordMessage.text}
+                    </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">New Password</label>
+                        <div className="relative">
+                            <KeyRound className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                            <input
+                                type={showNewPassword ? 'text' : 'password'}
+                                value={passwordData.newPassword}
+                                onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                                minLength={6}
+                                required
+                                className="w-full pl-12 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] transition-all font-medium text-slate-700"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowNewPassword((current) => !current)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition"
+                                aria-label={showNewPassword ? 'Hide new password' : 'Show new password'}
+                            >
+                                {showNewPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Confirm New Password</label>
+                        <div className="relative">
+                            <KeyRound className="w-5 h-5 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+                            <input
+                                type={showConfirmPassword ? 'text' : 'password'}
+                                value={passwordData.confirmPassword}
+                                onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                                minLength={6}
+                                required
+                                className="w-full pl-12 pr-12 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] transition-all font-medium text-slate-700"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowConfirmPassword((current) => !current)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition"
+                                aria-label={showConfirmPassword ? 'Hide password confirmation' : 'Show password confirmation'}
+                            >
+                                {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="pt-6 border-t border-slate-100 flex justify-end">
+                    <button
+                        type="submit"
+                        disabled={isChangingPassword}
+                        className="flex items-center px-8 py-3 bg-[#1e3a8a] text-white rounded-xl font-bold hover:bg-blue-900 transition-all shadow-md active:scale-95 disabled:opacity-70"
+                    >
+                        {isChangingPassword ? (
+                            <><Loader2 className="w-5 h-5 mr-2 animate-spin" /> Updating Password...</>
+                        ) : (
+                            <><KeyRound className="w-5 h-5 mr-2" /> Update Password</>
                         )}
                     </button>
                 </div>

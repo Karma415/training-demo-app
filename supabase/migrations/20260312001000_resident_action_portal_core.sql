@@ -23,6 +23,8 @@ create table if not exists issues (
   deadline_at timestamptz
 );
 
+alter table issues add column if not exists rule_id uuid references habitability_rules(id) on delete restrict;
+
 -- 3. Interactions Table
 create type vibe_category as enum ('neutral', 'dismissive', 'hostile', 'illegal_entry');
 
@@ -54,6 +56,7 @@ begin
 end;
 $$ language plpgsql;
 
+drop trigger if exists issues_deadline_trigger on issues;
 create trigger issues_deadline_trigger
 before insert or update of rule_id on issues
 for each row
@@ -65,33 +68,40 @@ alter table issues enable row level security;
 alter table interactions enable row level security;
 
 -- Policies for habitability_rules (Publicly readable)
+drop policy if exists "Habitability rules are viewable by everyone" on habitability_rules;
 create policy "Habitability rules are viewable by everyone"
 on habitability_rules for select
 using (true);
 
 -- Policies for issues (Tenant-only)
+drop policy if exists "Tenants can view their own issues" on issues;
 create policy "Tenants can view their own issues"
 on issues for select
 using (auth.uid() = tenant_id);
 
+drop policy if exists "Tenants can insert their own issues" on issues;
 create policy "Tenants can insert their own issues"
 on issues for insert
 with check (auth.uid() = tenant_id);
 
+drop policy if exists "Tenants can update their own issues" on issues;
 create policy "Tenants can update their own issues"
 on issues for update
 using (auth.uid() = tenant_id)
 with check (auth.uid() = tenant_id);
 
 -- Policies for interactions (Tenant-only)
+drop policy if exists "Tenants can view their own interactions" on interactions;
 create policy "Tenants can view their own interactions"
 on interactions for select
 using (auth.uid() = tenant_id);
 
+drop policy if exists "Tenants can insert their own interactions" on interactions;
 create policy "Tenants can insert their own interactions"
 on interactions for insert
 with check (auth.uid() = tenant_id);
 
+drop policy if exists "Tenants can update their own interactions" on interactions;
 create policy "Tenants can update their own interactions"
 on interactions for update
 using (auth.uid() = tenant_id)

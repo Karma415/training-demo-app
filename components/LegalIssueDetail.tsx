@@ -5,7 +5,8 @@ import EvidenceTimeline from './EvidenceTimeline';
 import RentCalculator from './RentCalculator';
 import { Download, FileText, ArrowLeft, SortDesc, SortAsc, ShieldCheck, CheckCircle2, Factory } from 'lucide-react';
 import { Issue, Tenant, InteractionLogEntry } from '../types';
-import { getEvidenceThumbnailUrl } from '../utils/evidenceFiles';
+import SecureEvidenceThumbnail from './SecureEvidenceThumbnail';
+import { openSecureEvidence } from '../utils/evidenceFiles';
 
 interface LegalIssueDetailProps {
     issue: Issue;
@@ -26,7 +27,13 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
     // Fetch resources related to this issue
     useEffect(() => {
         const fetchIssueData = async () => {
-            if (!issue.id) return;
+            console.log('[LegalIssueDetail] received issue prop:', issue);
+            console.log('[LegalIssueDetail] issue.id used for evidence query:', issue.id);
+
+            if (!issue.id) {
+                console.warn('[LegalIssueDetail] Missing issue.id; skipping evidence/legal/interactions fetch.', issue);
+                return;
+            }
 
             try {
                 // Fetch tenant if not available
@@ -51,10 +58,20 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
                 }
 
                 // 1. Evidence Files
-                const { data: evidence } = await supabase
+                console.log('[LegalIssueDetail] querying evidence_files with issue_id:', issue.id);
+                const { data: evidence, error: evidenceError } = await supabase
                     .from('evidence_files')
                     .select('*')
                     .eq('issue_id', issue.id);
+
+                console.log('[LegalIssueDetail] evidence_files query result:', {
+                    issueId: issue.id,
+                    count: evidence?.length ?? 0,
+                    evidence,
+                    evidenceError
+                });
+
+                if (evidenceError) throw evidenceError;
                 if (evidence) setEvidenceFiles(evidence);
 
                 // 2. Legal Notices
@@ -96,26 +113,6 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
 
         fetchIssueData();
     }, [issue.id, issue.tenantId]);
-
-    // Handle Download
-    const downloadFile = async (fileUrl: string, filename: string) => {
-        try {
-            const response = await fetch(fileUrl);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename || 'download';
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } catch (e) {
-            console.error("Download failed", e);
-            // Fallback: open in new tab
-            window.open(fileUrl, '_blank');
-        }
-    };
 
     // Calculate dates
     const reportedDateStr = isNaN(new Date(issue.dateStarted).getTime()) 
@@ -248,18 +245,13 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
                 <h2 className="text-xl font-black text-slate-800 tracking-tight border-b pb-2">Tenant Uploaded Evidence</h2>
                 {evidenceFiles.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {evidenceFiles.map(file => {
-                            const thumbnailUrl = getEvidenceThumbnailUrl(file);
-
-                            return (
+                        {evidenceFiles.map(file => (
                             <div key={file.id} className="block relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-50 group">
-                                {thumbnailUrl ? (
-                                    <img src={thumbnailUrl} alt={file.metadata?.filename || 'Evidence'} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
-                                        <FileText className="w-12 h-12" />
-                                    </div>
-                                )}
+                                <SecureEvidenceThumbnail
+                                    evidenceId={file.id}
+                                    alt={file.metadata?.filename || 'Evidence'}
+                                    className="w-full h-full object-cover"
+                                />
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/90 to-transparent p-3 pt-8">
                                     <p className="text-[10px] text-white/90 font-mono line-clamp-2">
                                         {file.metadata?.filename || file.caption || 'Evidence File'}
@@ -272,7 +264,10 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
                                         onClick={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            downloadFile(file.file_path, file.metadata?.filename || 'evidence.jpg');
+                                            openSecureEvidence(file).catch(error => {
+                                                console.error('Failed to open evidence:', error);
+                                                alert('Unable to open evidence. Please try again.');
+                                            });
                                         }}
                                         className="bg-white text-indigo-700 px-4 py-2 rounded-xl text-xs font-black shadow-lg hover:scale-105 active:scale-95 transition-transform flex items-center"
                                     >
@@ -281,7 +276,7 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
                                     </button>
                                 </div>
                             </div>
-                        )})}
+                        ))}
                     </div>
                 ) : (
                     <div className="bg-slate-50 border border-slate-100 p-8 rounded-2xl text-center">

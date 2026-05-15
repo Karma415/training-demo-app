@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
+import { useApp } from '../context/AppContext';
 import { FolderOpen, Plus, FileText, Image as ImageIcon, Receipt, Search, Filter, Loader2, Calendar, DollarSign, Eye, Upload } from 'lucide-react';
-import { getEvidenceThumbnailUrl, getGoogleDriveThumbnailUrl } from '../utils/evidenceFiles';
+import { getGoogleDriveThumbnailUrl, openSecureEvidence } from '../utils/evidenceFiles';
+import SecureEvidenceThumbnail from '../components/SecureEvidenceThumbnail';
 
 interface EvidenceRecord {
   id: string;
@@ -17,10 +19,16 @@ interface EvidenceRecord {
     thumbnail_url?: string;
     filename?: string;
   };
+  tenants?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    unit_number?: number | string | null;
+  } | null;
 }
 
 const RecordsLibrary: React.FC = () => {
-  const { user } = useAuth();
+  const { user: authUser } = useAuth();
+  const { user: appUser, tenants } = useApp();
   const [records, setRecords] = useState<EvidenceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'document' | 'receipt' | 'photograph'>('all');
@@ -38,16 +46,39 @@ const RecordsLibrary: React.FC = () => {
     date_received_or_taken: '',
     is_date_approximate: false
   });
+  const [selectedTenantId, setSelectedTenantId] = useState('');
+
+  const isSuperAdmin = appUser.role === 'superadmin';
+  const uploadTargetTenantId = isSuperAdmin ? selectedTenantId : authUser?.id;
+  const tenantOptions = tenants
+    .filter((tenant: any) => !['admin', 'superadmin', 'legal_counsel'].includes(tenant.role || ''))
+    .sort((a: any, b: any) => {
+      const unitA = String(a.unit || a.unit_number || '');
+      const unitB = String(b.unit || b.unit_number || '');
+      return unitA.localeCompare(unitB, undefined, { numeric: true });
+    });
 
   const fetchRecords = async () => {
     try {
       setLoading(true);
-      if (!user?.id) return;
-        const { data, error } = await supabase
-          .from('evidence_files')
-          .select('*, issues(date_reported)')
-          .eq('tenant_id', user.id)
-          .order('uploaded_at', { ascending: false });
+      if (!authUser?.id) return;
+
+      const isPrivilegedRecordsView = ['legal_counsel', 'admin', 'superadmin'].includes(appUser.role || '');
+
+      let query = supabase
+        .from('evidence_files')
+        .select(`
+          *,
+          issues(date_reported),
+          tenants(first_name, last_name, unit_number)
+        `)
+        .order('uploaded_at', { ascending: false });
+
+      if (!isPrivilegedRecordsView) {
+        query = query.eq('tenant_id', authUser.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setRecords(data || []);
@@ -60,7 +91,17 @@ const RecordsLibrary: React.FC = () => {
 
   useEffect(() => {
     fetchRecords();
-  }, [user]);
+  }, [authUser?.id, appUser.role]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    if (selectedTenantId) return;
+
+    const firstTenant = tenantOptions[0];
+    if (firstTenant?.id) {
+      setSelectedTenantId(firstTenant.id);
+    }
+  }, [isSuperAdmin, selectedTenantId, tenantOptions]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -69,7 +110,7 @@ const RecordsLibrary: React.FC = () => {
   };
 
   const handleUpload = async () => {
-    if (!selectedFile || !user?.id) return;
+    if (!selectedFile || !authUser?.id || !uploadTargetTenantId) return;
     try {
       setIsUploading(true);
 
@@ -99,7 +140,7 @@ const RecordsLibrary: React.FC = () => {
       };
 
       const { error } = await supabase.from('evidence_files').insert({
-        tenant_id: user.id,
+        tenant_id: uploadTargetTenantId,
         issue_id: null, // Standalone record
         file_path: uploadResult.webViewLink,
         metadata: newMetadata
@@ -208,21 +249,21 @@ const RecordsLibrary: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredRecords.map(record => {
-            const thumbnailUrl = getEvidenceThumbnailUrl(record);
-
-            return (
+          {filteredRecords.map(record => (
             <div key={record.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all group">
               <div className="h-48 bg-slate-100 relative border-b border-slate-100 overflow-hidden">
-                {thumbnailUrl ? (
-                  <img src={thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={record.metadata?.filename || 'Evidence thumbnail'} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-300">
-                    {record.metadata?.record_type === 'document' && <FileText className="w-16 h-16" />}
-                    {record.metadata?.record_type === 'receipt' && <Receipt className="w-16 h-16" />}
-                    {record.metadata?.record_type === 'photograph' && <ImageIcon className="w-16 h-16" />}
-                  </div>
-                )}
+                <SecureEvidenceThumbnail
+                  evidenceId={record.id}
+                  alt={record.metadata?.filename || 'Evidence thumbnail'}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                      {record.metadata?.record_type === 'document' && <FileText className="w-16 h-16" />}
+                      {record.metadata?.record_type === 'receipt' && <Receipt className="w-16 h-16" />}
+                      {record.metadata?.record_type === 'photograph' && <ImageIcon className="w-16 h-16" />}
+                    </div>
+                  }
+                />
                 <div className="absolute top-3 left-3 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-black text-slate-700 shadow-sm flex items-center space-x-1">
                   {(record.metadata?.record_type === 'document' || !record.metadata?.record_type) && <FileText className="w-3 h-3 text-blue-500" />}
                   {record.metadata?.record_type === 'receipt' && <Receipt className="w-3 h-3 text-emerald-500" />}
@@ -237,6 +278,12 @@ const RecordsLibrary: React.FC = () => {
                 )}
               </div>
               <div className="p-5">
+                {['legal_counsel', 'admin', 'superadmin'].includes(appUser.role || '') && (
+                  <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mb-2">
+                    {`${record.tenants?.first_name || ''} ${record.tenants?.last_name || ''}`.trim() || 'Unknown tenant'}
+                    {record.tenants?.unit_number ? ` • Unit ${record.tenants.unit_number}` : ''}
+                  </p>
+                )}
                 <p className="font-bold text-slate-800 line-clamp-2 min-h-[3rem] mb-3">
                   {record.metadata?.description || record.metadata?.filename || 'Issue Evidence File'}
                 </p>
@@ -256,14 +303,21 @@ const RecordsLibrary: React.FC = () => {
                   )}
                 </div>
                 <div className="mt-4 pt-4 border-t border-slate-100">
-                  <a href={record.file_path} target="_blank" rel="noreferrer" className="w-full bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors py-2 rounded-lg font-bold text-xs flex justify-center items-center">
+                  <button
+                    type="button"
+                    onClick={() => openSecureEvidence(record).catch(error => {
+                      console.error('Failed to open evidence:', error);
+                      alert('Unable to open evidence. Please try again.');
+                    })}
+                    className="w-full bg-slate-50 text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition-colors py-2 rounded-lg font-bold text-xs flex justify-center items-center"
+                  >
                     <Eye className="w-4 h-4 mr-2" />
                     View File
-                  </a>
+                  </button>
                 </div>
               </div>
             </div>
-          )})}
+          ))}
         </div>
       )}
 
@@ -277,6 +331,27 @@ const RecordsLibrary: React.FC = () => {
             </div>
             
             <div className="p-6 sm:p-8 space-y-6">
+              {isSuperAdmin && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Tenant Record Library</label>
+                  <select
+                    value={selectedTenantId}
+                    onChange={(e) => setSelectedTenantId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 focus:ring-2 focus:ring-blue-500 font-bold text-slate-700"
+                  >
+                    <option value="">Select a tenant</option>
+                    {tenantOptions.map((tenant: any) => (
+                      <option key={tenant.id} value={tenant.id}>
+                        {`${tenant.firstName || tenant.first_name || ''} ${tenant.lastName || tenant.last_name || ''}`.trim() || tenant.email || 'Unknown tenant'}
+                        {tenant.unit || tenant.unit_number ? ` - Unit ${tenant.unit || tenant.unit_number}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-400 font-semibold mt-2">
+                    This upload will be saved into the selected tenant's records.
+                  </p>
+                </div>
+              )}
               
               <div>
                 <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Record Type</label>
@@ -372,7 +447,7 @@ const RecordsLibrary: React.FC = () => {
               </button>
               <button
                 onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
+                disabled={!selectedFile || isUploading || (isSuperAdmin && !selectedTenantId)}
                 className="bg-[#1e3a8a] text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
               >
                 {isUploading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Upload className="w-5 h-5" />}

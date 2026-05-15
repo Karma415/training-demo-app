@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabase';
+import { Eye, EyeOff } from 'lucide-react';
 
 interface AuthFormProps {
   onLogin: (email: string, password: string) => Promise<void>;
@@ -11,6 +12,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignUp }) => {
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [unit, setUnit] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -25,13 +27,22 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignUp }) => {
 
     try {
       if (isForgotPassword) {
-        if (!email) {
+        const normalizedEmail = email.trim();
+
+        if (!normalizedEmail) {
           throw new Error('Please enter your email address to reset your password');
         }
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + '/reset-password',
+
+        const redirectTo = `${window.location.origin}/reset-password`;
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo,
         });
-        if (resetError) throw resetError;
+
+        if (resetError) {
+          console.error('Password reset email failed:', resetError);
+          throw resetError;
+        }
+
         setSuccessMessage('Password reset link sent to your email.');
       } else if (email && password) {
         if (isLogin) {
@@ -137,12 +148,20 @@ const AuthForm: React.FC<AuthFormProps> = ({ onLogin, onSignUp }) => {
                   <i className="fa-solid fa-lock absolute left-3 top-3 text-slate-300"></i>
                   <input
                     required
-                    type="password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-4 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                    type={showPassword ? 'text' : 'password'}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg py-2 pl-10 pr-12 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((current) => !current)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 transition"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
               </div>
             )}
