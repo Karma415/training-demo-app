@@ -107,6 +107,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 
 import HelpVideo from './components/HelpVideo';
 
+const isTenantProfileComplete = (user: ReturnType<typeof useApp>['user']) => {
+  return Boolean(
+    user.firstName?.trim() &&
+    user.lastName?.trim() &&
+    user.unit &&
+    user.unit !== 'N/A' &&
+    user.phone?.trim() &&
+    user.monthlyRent &&
+    user.monthlyRent > 0 &&
+    user.moveInDate
+  );
+};
+
 const MainLayout: React.FC = () => {
   const { user, logout,
     notifications,
@@ -117,6 +130,7 @@ const MainLayout: React.FC = () => {
   } = useApp();
   const { user: authUser } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const hasCompletedOnboarding = Boolean(authUser?.user_metadata?.onboarding_completed) || isTenantProfileComplete(user);
 
   if (authUser && !isProfileLoaded) {
     return (
@@ -170,7 +184,7 @@ const MainLayout: React.FC = () => {
             ((user.role === 'admin' || user.role === 'superadmin') && adminViewMode === 'global') ? <Navigate to="/admin-dashboard" replace /> :
               user.role === 'legal_counsel' ? <Navigate to="/legal-dashboard" replace /> :
                 (authUser?.user_metadata?.is_lightweight || user.is_lightweight) ? <Navigate to="/my-checklist" replace /> :
-                (!authUser?.user_metadata?.onboarding_completed && (user.role === 'tenant' || user.role === 'resident' || !user.role)) ? <Navigate to="/onboarding" replace /> :
+                (!hasCompletedOnboarding && (user.role === 'tenant' || user.role === 'resident' || !user.role)) ? <Navigate to="/onboarding" replace /> :
                   <Dashboard />
           } />
           <Route path="/admin-dashboard" element={

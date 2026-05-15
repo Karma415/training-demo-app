@@ -304,10 +304,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     monthlyRent: t.monthly_rent || 0,
                     status: t.status,
                     role: t.role as any,
-                    moveInDate: t.created_at,
+                    moveInDate: t.move_in_date || '',
                     leaseAnalyzed: false,
                     avatarUrl: t.avatar_url || undefined,
                     requestsAttorney: t.requests_attorney || false,
+                    is_lightweight: t.is_lightweight || false,
                     temporaryUnit: t.temporary_unit?.toString(),
                     temporaryMoveInDate: t.temp_move_in_date,
                     temporaryMoveOutDate: t.temp_move_out_date
@@ -334,6 +335,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                         leaseAnalyzed: false,
                         avatarUrl: currentUser.avatarUrl,
                         requestsAttorney: currentUser.requestsAttorney,
+                        is_lightweight: currentUser.is_lightweight,
                         temporaryUnit: currentUser.temporaryUnit,
                         temporaryMoveInDate: currentUser.temporaryMoveInDate,
                         temporaryMoveOutDate: currentUser.temporaryMoveOutDate

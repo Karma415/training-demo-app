@@ -5,9 +5,19 @@ import { useAuth } from '../context/AuthContext';
 import { useApp } from '../context/AppContext';
 import { HistoricalDataForm } from '../components/HistoricalDataForm';
 
+const toDateInputValue = (value?: string | null) => {
+  if (!value) return '';
+  return value.includes('T') ? value.split('T')[0] : value;
+};
+
+const toNullableRent = (value: string) => {
+  const trimmedValue = value.trim();
+  return trimmedValue ? parseFloat(trimmedValue) : null;
+};
+
 const Onboarding: React.FC = () => {
   const { user, session } = useAuth();
-  const { refetchUser, user: appUser } = useApp();
+  const { refetchUser, user: appUser, isProfileLoaded } = useApp();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +37,7 @@ const Onboarding: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [rent, setRent] = useState('');
   const [moveInDate, setMoveInDate] = useState('');
+  const [hasHydratedProfile, setHasHydratedProfile] = useState(false);
   
   // Step 3: Historical Issues State
   const [pastIssues, setPastIssues] = useState<any[]>([]);
@@ -60,12 +71,22 @@ const Onboarding: React.FC = () => {
     // If not authenticated, redirect to login
     if (!session) {
       navigate('/login');
-    } else if (user?.user_metadata) {
-       setFirstName(user.user_metadata.first_name || '');
-       setLastName(user.user_metadata.last_name || '');
-       setUnit(user.user_metadata.unit_number?.toString() || '');
     }
-  }, [session, user, navigate]);
+  }, [session, navigate]);
+
+  useEffect(() => {
+    if (!session || !user || !isProfileLoaded || hasHydratedProfile) return;
+
+    const metadata = user.user_metadata || {};
+
+    setFirstName(appUser.firstName || metadata.first_name || '');
+    setLastName(appUser.lastName || metadata.last_name || '');
+    setUnit(appUser.unit && appUser.unit !== 'N/A' ? appUser.unit : metadata.unit_number?.toString() || '');
+    setPhone(appUser.phone && appUser.phone !== 'Not Provided' ? appUser.phone : '');
+    setRent(appUser.monthlyRent ? appUser.monthlyRent.toString() : '');
+    setMoveInDate(toDateInputValue(appUser.moveInDate));
+    setHasHydratedProfile(true);
+  }, [appUser, hasHydratedProfile, isProfileLoaded, session, user]);
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,36 +106,40 @@ const Onboarding: React.FC = () => {
       
       const buildingId = buildings && buildings.length > 0 ? buildings[0].id : null;
 
+      const profilePayload = {
+        phone: phone.trim() === '' ? 'Not Provided' : phone.trim(),
+        unit_number: unit ? parseInt(unit, 10) : null,
+        monthly_rent: toNullableRent(rent),
+        move_in_date: moveInDate || null,
+        first_name: firstName.trim(),
+        last_name: lastName.trim(),
+        ...(buildingId ? { building_id: buildingId } : {})
+      };
+
       // 2. Update tenants table
       const { data: updatedData, error: profileError } = await supabase
         .from('tenants')
-        .update({
-          phone: phone.trim() === '' ? 'Not Provided' : phone,
-          unit_number: unit ? parseInt(unit) : null,
-          monthly_rent: rent ? parseFloat(rent) : null,
-          move_in_date: moveInDate || null,
-          building_id: buildingId,
-          first_name: firstName,
-          last_name: lastName
-        })
+        .update(profilePayload)
         .eq('id', user.id)
         .select();
 
       // Fallback if update fails because row doesn't exist yet (count === 0)
       if (profileError || !updatedData || updatedData.length === 0) {
+         if (profileError) {
+            console.error("Failed to update tenant profile:", profileError);
+         }
          console.warn("Update failed or 0 rows matched, trying insert:", profileError);
+         if (!buildingId) {
+            throw new Error("Could not create tenant profile because no building record is available.");
+         }
          const { error: insertError } = await supabase.from('tenants').insert([{
             id: user.id,
-            first_name: firstName,
-            last_name: lastName,
-            phone: phone.trim() === '' ? 'Not Provided' : phone,
-            unit_number: unit ? parseInt(unit) : null,
-            monthly_rent: rent ? parseFloat(rent) : null,
-            move_in_date: moveInDate || null,
+            ...profilePayload,
             building_id: buildingId
          }]);
          
          if (insertError) {
+             console.error("Failed to insert tenant profile:", insertError);
              throw new Error("Could not create tenant profile: " + insertError.message);
          }
       }
@@ -130,6 +155,7 @@ const Onboarding: React.FC = () => {
 
       if (updateError) throw updateError;
       
+      await refetchUser();
       setStep(2); // Go to Step 2
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: any) {
@@ -143,12 +169,17 @@ const Onboarding: React.FC = () => {
   const completeOnboarding = async () => {
     setLoading(true);
     try {
-        await supabase.auth.updateUser({
+        const { error: updateError } = await supabase.auth.updateUser({
            data: { onboarding_completed: true }
         });
+        if (updateError) {
+            console.error("Failed to mark onboarding complete:", updateError);
+            throw updateError;
+        }
         await refetchUser();
         navigate('/');
     } catch (err: any) {
+        console.error("Failed to finalize onboarding:", err);
         setError("Failed to finalize onboarding.");
     } finally {
         setLoading(false);

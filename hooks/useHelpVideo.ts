@@ -28,15 +28,27 @@ export const useHelpVideo = (pagePath: string): UseHelpVideoResult => {
     let isMounted = true;
 
     const fetchVideo = async () => {
-      const { data } = await supabase
-        .from('page_tutorials')
-        .select('video_url')
-        .eq('page_path', pagePath)
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from('page_tutorials')
+          .select('video_url')
+          .eq('page_path', pagePath)
+          .maybeSingle();
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      setVideoUrl(data?.video_url ?? null);
+        if (error) {
+          console.error('Error fetching page tutorial:', error);
+          setVideoUrl(null);
+          return;
+        }
+
+        setVideoUrl(data?.video_url ?? null);
+      } catch (error) {
+        if (!isMounted) return;
+        console.error('Unexpected error fetching page tutorial:', error);
+        setVideoUrl(null);
+      }
     };
 
     fetchVideo();
