@@ -11,6 +11,29 @@ import HistoricalDataForm from '../components/HistoricalDataForm';
 import RepairCountdown from '../components/RepairCountdown';
 import { IssueStatus } from '../types';
 
+const toInteractionTypeValue = (value?: string) => {
+    switch (value) {
+        case 'Phone':
+            return 'phone_call';
+        case 'Email':
+        case 'Letter':
+            return 'email';
+        case 'Text':
+            return 'text_message';
+        case 'In-Person':
+        case 'Maintenance Visit':
+        case 'Office Visit':
+        case 'Other':
+        default:
+            return 'in_person';
+    }
+};
+
+const toTopicArray = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value;
+    return value ? [String(value)] : [];
+};
+
 const Dashboard: React.FC = () => {
     const { issues, setIssues, user, interactionLogs, setInteractionLogs, notifications, todos, setTodos } = useApp();
     const navigate = useNavigate();
@@ -199,14 +222,13 @@ const Dashboard: React.FC = () => {
                     tenant_id: user.id,
                     staff_name: log.staffName,
                     staff_role: log.staffTitle,
-                    interaction_type: log.interactionType,
-                    interaction_category: log.interactionCategory,
+                    interaction_type: toInteractionTypeValue(log.interactionType),
+                    topic: toTopicArray(log.interactionCategory),
                     detailed_notes: log.detailedNotes,
                     promise_made: log.promiseMadeStatus === 'Yes',
                     promise_details: log.promiseMadeDetails,
                     follow_up_date: log.expectedFollowUpDates || null,
                     summary: log.summary,
-                    location: log.location,
                     issue_id: log.relatedIssueId || null,
                     created_at: log.timestamp ? new Date(log.timestamp).toISOString() : undefined
                 });

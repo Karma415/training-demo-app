@@ -10,6 +10,30 @@ import RentCalculator from '../components/RentCalculator';
 import AgencySubmission from '../components/AgencySubmission';
 import LegalNoticeBuilder from '../components/LegalNoticeBuilder';
 import LegalIssueDetail from '../components/LegalIssueDetail';
+import { getEvidenceThumbnailUrl } from '../utils/evidenceFiles';
+
+const toInteractionTypeValue = (value?: string) => {
+    switch (value) {
+        case 'Phone':
+            return 'phone_call';
+        case 'Email':
+        case 'Letter':
+            return 'email';
+        case 'Text':
+            return 'text_message';
+        case 'In-Person':
+        case 'Maintenance Visit':
+        case 'Office Visit':
+        case 'Other':
+        default:
+            return 'in_person';
+    }
+};
+
+const toTopicArray = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value;
+    return value ? [String(value)] : [];
+};
 
 const IssueDetail: React.FC = () => {
     const { issueId } = useParams<{ issueId: string }>();
@@ -81,8 +105,8 @@ const IssueDetail: React.FC = () => {
                     tenant_id: user.id,
                     staff_name: log.staffName,
                     staff_role: log.staffTitle,
-                    interaction_type: log.interactionType,
-                    topic: log.interactionCategory,
+                    interaction_type: toInteractionTypeValue(log.interactionType),
+                    topic: toTopicArray(log.interactionCategory),
                     detailed_notes: detailedNotes,
                     promise_made: log.promiseMadeStatus === 'Yes',
                     promise_details: log.promiseMadeDetails,
@@ -202,9 +226,16 @@ const IssueDetail: React.FC = () => {
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-6">
                             {evidenceFiles.map(file => {
                                 const hasMetadata = file.metadata && (file.metadata.latitude || file.metadata.timestamp);
+                                const thumbnailUrl = getEvidenceThumbnailUrl(file);
                                 return (
                                 <a key={file.id} href={file.file_path} target="_blank" rel="noreferrer" className="block relative aspect-square rounded-2xl overflow-hidden shadow-md group border border-slate-100 bg-slate-100/50">
-                                    <img src={file.metadata?.thumbnail_url || file.file_path} alt={file.metadata?.filename || "Evidence"} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                    {thumbnailUrl ? (
+                                        <img src={thumbnailUrl} alt={file.metadata?.filename || "Evidence"} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
+                                            <i className="fa-solid fa-file text-4xl"></i>
+                                        </div>
+                                    )}
                                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-4 text-center">
                                         <i className="fa-solid fa-expand text-white text-2xl mb-2 shadow-sm"></i>
                                         {hasMetadata && (

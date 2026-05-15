@@ -2,6 +2,7 @@ import React, { useRef, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Upload, CheckCircle2, AlertCircle, Loader2, FolderPlus } from 'lucide-react';
 import EXIF from 'exif-js';
+import { getGoogleDriveThumbnailUrl } from '../utils/evidenceFiles';
 
 interface EvidenceUploaderProps {
   issueId: string;
@@ -130,35 +131,22 @@ const EvidenceUploader: React.FC<EvidenceUploaderProps> = ({ issueId, tenantId, 
         // 2. Compress if it's an image
         const fileToUpload = await compressImage(originalFile);
 
-        // 3. Upload to Google Drive via Edge Function
-        let uploadedUrl = '';
-        let verifiedThumbnail = '';
-        
-        try {
-            const formData = new FormData();
-            formData.append('file', fileToUpload);
-            formData.append('filename', originalFile.name);
+        // 3. Upload to Google Drive via Edge Function. Do not store raw base64 in Supabase if this fails.
+        const formData = new FormData();
+        formData.append('file', fileToUpload);
+        formData.append('filename', originalFile.name);
 
-            const { data, error: uploadError } = await supabase.functions.invoke('upload-to-google', {
-              body: formData,
-            });
+        const { data, error: uploadError } = await supabase.functions.invoke('upload-to-google', {
+          body: formData,
+        });
 
-            if (uploadError) throw uploadError;
-            if (!data || !data.success) throw new Error(data?.error || "Failed");
-            
-            uploadedUrl = data.webViewLink;
-            verifiedThumbnail = data.thumbnailLink || `https://drive.google.com/thumbnail?id=${data.id}&sz=w800`;
-        } catch(fallbackErr) {
-            console.warn("Edge function unreachable, falling back to base64 encoding locally:", fallbackErr);
-            // Fallback for demo: encode as base64 string
-            const base64Url = await new Promise<string>((resolve) => {
-               const reader = new FileReader();
-               reader.onloadend = () => resolve(reader.result as string);
-               reader.readAsDataURL(fileToUpload);
-            });
-            uploadedUrl = base64Url;
-            verifiedThumbnail = base64Url;
+        if (uploadError) throw uploadError;
+        if (!data || !data.success || !data.webViewLink) {
+          throw new Error(data?.error || "Google Drive upload failed.");
         }
+
+        const uploadedUrl = data.webViewLink;
+        const verifiedThumbnail = data.thumbnailLink || getGoogleDriveThumbnailUrl(data.id);
 
         // 4. Insert Database Record
         const safeMetadata = metadata || {};
@@ -169,7 +157,13 @@ const EvidenceUploader: React.FC<EvidenceUploaderProps> = ({ issueId, tenantId, 
             issue_id: issueId,
             tenant_id: tenantId,
             file_path: uploadedUrl,
-            metadata: { ...safeMetadata, thumbnail_url: verifiedThumbnail }
+            metadata: {
+              ...safeMetadata,
+              thumbnail_url: verifiedThumbnail,
+              google_drive_file_id: data.id,
+              file_mime_type: originalFile.type,
+              filename: originalFile.name
+            }
           });
 
         if (dbError) throw dbError;

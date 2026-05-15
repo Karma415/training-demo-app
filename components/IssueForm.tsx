@@ -85,13 +85,12 @@ const ReportIssueForm: React.FC<Props> = ({ isOpen, onClose, onSuccess, onSubmit
       const { data: record, error: sbError } = await supabase
         .from('issues')
         .insert({
-          category: formattedCategory,
-          rule_id: formData.subIssueId,
+          tenant_id: user.supabaseId || user.id,
+          category: [formattedCategory],
           description: `Issue began on ${formData.dateStarted}:\n\n${formData.description}`,
-          date_reported: reportedDateToUse,
+          date_reported: reportedDateToUse.split('T')[0],
           management_method: formData.noticeGiven ? formData.managementMethod.toLowerCase().replace(' ', '_') : null,
-          status: 'reported',
-          unit_reported: formData.unitReported || user.unit || 'Unknown'
+          status: 'reported'
         })
         .select()
         .single();

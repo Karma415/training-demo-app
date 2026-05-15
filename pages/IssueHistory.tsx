@@ -6,6 +6,29 @@ import InteractionForm from '../components/InteractionForm';
 import { Issue } from '../types';
 import { supabase } from '../services/supabase';
 
+const toInteractionTypeValue = (value?: string) => {
+    switch (value) {
+        case 'Phone':
+            return 'phone_call';
+        case 'Email':
+        case 'Letter':
+            return 'email';
+        case 'Text':
+            return 'text_message';
+        case 'In-Person':
+        case 'Maintenance Visit':
+        case 'Office Visit':
+        case 'Other':
+        default:
+            return 'in_person';
+    }
+};
+
+const toTopicArray = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value;
+    return value ? [String(value)] : [];
+};
+
 const IssueHistory: React.FC = () => {
     const { issues, user, fetchIssues, interactionLogs, setInteractionLogs } = useApp();
     const { issueId } = useParams<{ issueId?: string }>();
@@ -38,14 +61,13 @@ const IssueHistory: React.FC = () => {
                     tenant_id: user.id || rest.tenantId,
                     staff_name: rest.staffName,
                     staff_role: rest.staffTitle,
-                    interaction_type: rest.interactionType,
-                    topic: rest.interactionCategory,
+                    interaction_type: toInteractionTypeValue(rest.interactionType),
+                    topic: toTopicArray(rest.interactionCategory),
                     detailed_notes: finalDetailedNotes,
                     promise_made: rest.promiseMadeStatus === 'Yes',
                     promise_details: rest.promiseMadeDetails,
                     follow_up_date: rest.expectedFollowUpDates || null,
                     summary: rest.summary,
-                    location: rest.location,
                     issue_id: rest.relatedIssueId || null,
                     created_at: rest.timestamp ? new Date(rest.timestamp).toISOString() : undefined
                 });

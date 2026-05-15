@@ -120,6 +120,29 @@ const isTenantProfileComplete = (user: ReturnType<typeof useApp>['user']) => {
   );
 };
 
+const toInteractionTypeValue = (value?: string) => {
+  switch (value) {
+    case 'Phone':
+      return 'phone_call';
+    case 'Email':
+    case 'Letter':
+      return 'email';
+    case 'Text':
+      return 'text_message';
+    case 'In-Person':
+    case 'Maintenance Visit':
+    case 'Office Visit':
+    case 'Other':
+    default:
+      return 'in_person';
+  }
+};
+
+const toTopicArray = (value: unknown): string[] => {
+  if (Array.isArray(value)) return value;
+  return value ? [String(value)] : [];
+};
+
 const MainLayout: React.FC = () => {
   const { user, logout,
     notifications,
@@ -217,8 +240,8 @@ const MainLayout: React.FC = () => {
                       tenant_id: user.id,
                       staff_name: log.staffName,
                       staff_role: log.staffTitle,
-                      interaction_type: log.interactionType,
-                      topic: log.interactionCategory,
+                      interaction_type: toInteractionTypeValue(log.interactionType),
+                      topic: toTopicArray(log.interactionCategory),
                       detailed_notes: log.detailedNotes,
                       promise_made: log.promiseMadeStatus === 'Yes',
                       promise_details: log.promiseMadeDetails,

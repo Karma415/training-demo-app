@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from '../context/AuthContext';
 import { FolderOpen, Plus, FileText, Image as ImageIcon, Receipt, Search, Filter, Loader2, Calendar, DollarSign, Eye, Upload } from 'lucide-react';
+import { getEvidenceThumbnailUrl, getGoogleDriveThumbnailUrl } from '../utils/evidenceFiles';
 
 interface EvidenceRecord {
   id: string;
@@ -71,13 +72,19 @@ const RecordsLibrary: React.FC = () => {
     if (!selectedFile || !user?.id) return;
     try {
       setIsUploading(true);
-      
-      // Fallback base64 conversion for simplicity and prototype stability
-      const base64Url = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(selectedFile);
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      formData.append('filename', selectedFile.name);
+
+      const { data: uploadResult, error: uploadError } = await supabase.functions.invoke('upload-to-google', {
+        body: formData,
       });
+
+      if (uploadError) throw uploadError;
+      if (!uploadResult || !uploadResult.success || !uploadResult.webViewLink) {
+        throw new Error(uploadResult?.error || 'Google Drive upload failed.');
+      }
 
       const newMetadata = {
         record_type: uploadType,
@@ -85,13 +92,16 @@ const RecordsLibrary: React.FC = () => {
         cost_amount: uploadType === 'receipt' ? parseFloat(uploadData.cost_amount) : undefined,
         date_received_or_taken: uploadData.date_received_or_taken,
         is_date_approximate: uploadData.is_date_approximate,
-        thumbnail_url: selectedFile.type.startsWith('image/') ? base64Url : undefined
+        thumbnail_url: uploadResult.thumbnailLink || getGoogleDriveThumbnailUrl(uploadResult.id) || undefined,
+        google_drive_file_id: uploadResult.id,
+        file_mime_type: selectedFile.type,
+        filename: selectedFile.name
       };
 
       const { error } = await supabase.from('evidence_files').insert({
         tenant_id: user.id,
         issue_id: null, // Standalone record
-        file_path: base64Url,
+        file_path: uploadResult.webViewLink,
         metadata: newMetadata
       });
 
@@ -198,11 +208,14 @@ const RecordsLibrary: React.FC = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredRecords.map(record => (
+          {filteredRecords.map(record => {
+            const thumbnailUrl = getEvidenceThumbnailUrl(record);
+
+            return (
             <div key={record.id} className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all group">
               <div className="h-48 bg-slate-100 relative border-b border-slate-100 overflow-hidden">
-                {record.metadata?.thumbnail_url ? (
-                  <img src={record.metadata.thumbnail_url} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Thumbnail" />
+                {thumbnailUrl ? (
+                  <img src={thumbnailUrl} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt={record.metadata?.filename || 'Evidence thumbnail'} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-slate-300">
                     {record.metadata?.record_type === 'document' && <FileText className="w-16 h-16" />}
@@ -250,7 +263,7 @@ const RecordsLibrary: React.FC = () => {
                 </div>
               </div>
             </div>
-          ))}
+          )})}
         </div>
       )}
 

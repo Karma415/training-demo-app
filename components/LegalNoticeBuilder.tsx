@@ -31,6 +31,11 @@ const parseTemplateVariables = (template: string, data: Record<string, string>) 
     });
 };
 
+const toTopicArray = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value;
+    return value ? [String(value)] : [];
+};
+
 const LegalNoticeBuilder: React.FC<LegalNoticeBuilderProps> = ({ onClose, initialIncidentId }) => {
     const { user, issues, interactionLogs, setInteractionLogs } = useApp();
     const [step, setStep] = useState(initialIncidentId ? 2 : 1);
@@ -201,8 +206,8 @@ Please provide 3-4 bullet points of practical, legal, or administrative options 
             const { data: interactionData } = await supabase.from('interactions').insert({
                 tenant_id: user.id,
                 staff_name: 'Property Management',
-                interaction_type: 'Written Document',
-                topic: Array.isArray(activeIssue.category) ? activeIssue.category : [activeIssue.category],
+                interaction_type: 'email',
+                topic: toTopicArray(activeIssue.category),
                 detailed_notes: `Legal Notice Generated & Escalated:\n\n${generatedLetter}`,
                 summary: `Sent Notice: ${actionType.toUpperCase()}`,
                 issue_id: activeIssue.id

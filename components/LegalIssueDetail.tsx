@@ -5,6 +5,7 @@ import EvidenceTimeline from './EvidenceTimeline';
 import RentCalculator from './RentCalculator';
 import { Download, FileText, ArrowLeft, SortDesc, SortAsc, ShieldCheck, CheckCircle2, Factory } from 'lucide-react';
 import { Issue, Tenant, InteractionLogEntry } from '../types';
+import { getEvidenceThumbnailUrl } from '../utils/evidenceFiles';
 
 interface LegalIssueDetailProps {
     issue: Issue;
@@ -247,9 +248,18 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
                 <h2 className="text-xl font-black text-slate-800 tracking-tight border-b pb-2">Tenant Uploaded Evidence</h2>
                 {evidenceFiles.length > 0 ? (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {evidenceFiles.map(file => (
+                        {evidenceFiles.map(file => {
+                            const thumbnailUrl = getEvidenceThumbnailUrl(file);
+
+                            return (
                             <div key={file.id} className="block relative aspect-square rounded-2xl overflow-hidden shadow-sm border border-slate-200 bg-slate-50 group">
-                                <img src={file.metadata?.thumbnail_url || file.file_path} alt="Evidence" className="w-full h-full object-cover" />
+                                {thumbnailUrl ? (
+                                    <img src={thumbnailUrl} alt={file.metadata?.filename || 'Evidence'} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-slate-400 bg-slate-100">
+                                        <FileText className="w-12 h-12" />
+                                    </div>
+                                )}
                                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-900/90 to-transparent p-3 pt-8">
                                     <p className="text-[10px] text-white/90 font-mono line-clamp-2">
                                         {file.metadata?.filename || file.caption || 'Evidence File'}
@@ -271,7 +281,7 @@ const LegalIssueDetail: React.FC<LegalIssueDetailProps> = ({ issue, user }) => {
                                     </button>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 ) : (
                     <div className="bg-slate-50 border border-slate-100 p-8 rounded-2xl text-center">

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../services/supabase';
 import { User, Mail, Phone, Home, Save, CheckCircle2, Loader2, AlertCircle, Camera, Trash2 } from 'lucide-react';
@@ -11,18 +11,30 @@ const Profile: React.FC = () => {
     const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const [formData, setFormData] = useState({
+    const toDateInputValue = (value?: string | null) => {
+        if (!value) return '';
+        return value.includes('T') ? value.split('T')[0] : value;
+    };
+
+    const getInitialFormData = () => ({
         firstName: user.firstName || user.name.split(' ')[0] || '',
         lastName: user.lastName || user.name.split(' ').slice(1).join(' ') || '',
         email: user.email || '',
         phone: user.phone || '',
-        monthlyRent: user.monthlyRent || 0,
+        monthlyRent: user.monthlyRent ? user.monthlyRent.toString() : '',
+        moveInDate: toDateInputValue(user.moveInDate),
         unit: user.unit || '',
         requestsAttorney: user.requestsAttorney || false,
         temporaryUnit: user.temporaryUnit || '',
         temporaryMoveInDate: user.temporaryMoveInDate || '',
         temporaryMoveOutDate: user.temporaryMoveOutDate || ''
     });
+
+    const [formData, setFormData] = useState(getInitialFormData);
+
+    useEffect(() => {
+        setFormData(getInitialFormData());
+    }, [user.id]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -168,15 +180,21 @@ const Profile: React.FC = () => {
         setMessage(null);
 
         try {
+            const monthlyRent = formData.monthlyRent.trim() === '' ? null : Number(formData.monthlyRent);
+            if (monthlyRent !== null && Number.isNaN(monthlyRent)) {
+                throw new Error('Monthly rent must be a valid number.');
+            }
+
             // Update tenants table
             const { error: dbError } = await supabase
                 .from('tenants')
                 .update({
-                    first_name: formData.firstName,
-                    last_name: formData.lastName,
-                    email: formData.email,
-                    phone: formData.phone,
-                    monthly_rent: formData.monthlyRent,
+                    first_name: formData.firstName.trim(),
+                    last_name: formData.lastName.trim(),
+                    email: formData.email.trim(),
+                    phone: formData.phone.trim(),
+                    monthly_rent: monthlyRent,
+                    move_in_date: formData.moveInDate || null,
                     unit_number: formData.unit,
                     requests_attorney: formData.requestsAttorney,
                     temporary_unit: formData.temporaryUnit || null,
@@ -191,11 +209,12 @@ const Profile: React.FC = () => {
             setUser({
                 ...user,
                 name: `${formData.firstName} ${formData.lastName}`.trim(),
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                phone: formData.phone,
-                monthlyRent: formData.monthlyRent,
+                firstName: formData.firstName.trim(),
+                lastName: formData.lastName.trim(),
+                email: formData.email.trim(),
+                phone: formData.phone.trim(),
+                monthlyRent: monthlyRent || 0,
+                moveInDate: formData.moveInDate,
                 unit: formData.unit,
                 requestsAttorney: formData.requestsAttorney,
                 temporaryUnit: formData.temporaryUnit,
@@ -361,6 +380,17 @@ const Profile: React.FC = () => {
                                     <input 
                                         type="text" name="unit" value={formData.unit} onChange={handleChange}
                                         className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] transition-all font-medium text-slate-700" 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest">Move-In Date</label>
+                                <div className="relative">
+                                    <i className="fa-regular fa-calendar text-slate-400 absolute left-4 top-1/2 -translate-y-1/2 w-5 text-center"></i>
+                                    <input
+                                        type="date" name="moveInDate" value={formData.moveInDate} onChange={handleChange}
+                                        className="w-full pl-12 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#1e3a8a] focus:border-[#1e3a8a] transition-all font-medium text-slate-700"
                                     />
                                 </div>
                             </div>
