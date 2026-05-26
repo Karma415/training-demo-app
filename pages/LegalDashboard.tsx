@@ -209,7 +209,7 @@ const LegalDashboard: React.FC = () => {
                                                     onClick={(e) => {
                                                         e.stopPropagation();
                                                         setProfileEmail(client.email || null);
-                                                        setProfileName(`${client.firstName} ${client.lastName}`);
+                                                        setProfileName(client.name || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unknown');
                                                         setProfileUnit(client.unit || null);
                                                         setIsProfileDrawerOpen(true);
                                                     }}
