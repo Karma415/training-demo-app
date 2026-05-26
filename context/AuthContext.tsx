@@ -21,18 +21,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     useEffect(() => {
         // Get initial session
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
-            setUser(session?.user ?? null);
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (error) {
+                console.error("AuthContext getSession error:", error);
+            }
+            if (session) {
+                setSession(session);
+                setUser(session.user);
+            }
             setLoading(false);
         });
 
         // Listen for auth changes
         const { data: listener } = supabase.auth.onAuthStateChange(
-            (_event, session) => {
-
-                setSession(session);
-                setUser(session?.user ?? null);
+            (event, session) => {
+                console.log(`Auth event: ${event}`);
+                if (event === 'SIGNED_OUT') {
+                    setSession(null);
+                    setUser(null);
+                } else if (session) {
+                    setSession(session);
+                    setUser(session.user);
+                }
                 setLoading(false);
             }
         );

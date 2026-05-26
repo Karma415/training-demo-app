@@ -8,14 +8,21 @@ import AdminArticleEditor from '../components/AdminArticleEditor';
 import Timeline from './Timeline';
 import IssueHeatMap from '../components/IssueHeatMap';
 import AdminFileCabinet from './AdminFileCabinet';
+import AdminCommunications from '../components/AdminCommunications';
+import ClientProfileDrawer from '../components/ClientProfileDrawer';
+import { Eye } from 'lucide-react';
 
 const LegalDashboard: React.FC = () => {
     const { issues, tenants, user } = useApp();
     const navigate = useNavigate();
     const [searchQuery, setSearchQuery] = useState('');
-    const [viewMode, setViewMode] = useState<'aggregate' | 'individual' | 'editor' | 'timeline' | 'heatmap' | 'file-cabinet'>('aggregate');
+    const [viewMode, setViewMode] = useState<'aggregate' | 'individual' | 'editor' | 'timeline' | 'heatmap' | 'file-cabinet' | 'communications'>('aggregate');
     const [assignedClients, setAssignedClients] = useState<Tenant[]>([]);
     const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+    const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
+    const [profileEmail, setProfileEmail] = useState<string | null>(null);
+    const [profileName, setProfileName] = useState('');
+    const [profileUnit, setProfileUnit] = useState<string | null>(null);
 
     // Fetch assigned clients explicitly 
     // (issues are already filtered by RLS in AppContext)
@@ -113,6 +120,17 @@ const LegalDashboard: React.FC = () => {
                     Manage Articles
                 </button>
                 <button
+                    onClick={() => setViewMode('communications')}
+                    className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                        viewMode === 'communications' 
+                            ? 'bg-indigo-50 text-indigo-700 shadow-sm' 
+                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                >
+                    <i className="fa-solid fa-bullhorn w-4 h-4"></i>
+                    Announcements
+                </button>
+                <button
                     onClick={() => setViewMode('timeline')}
                     className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-bold transition-all ${
                         viewMode === 'timeline' 
@@ -147,7 +165,9 @@ const LegalDashboard: React.FC = () => {
                 </button>
             </div>
 
-            {viewMode === 'editor' ? (
+            {viewMode === 'communications' ? (
+                <AdminCommunications />
+            ) : viewMode === 'editor' ? (
                 <AdminArticleEditor />
             ) : viewMode === 'timeline' ? (
                 <Timeline />
@@ -175,14 +195,29 @@ const LegalDashboard: React.FC = () => {
                                             <button
                                                 key={client.id}
                                                 onClick={() => setSelectedClientId(client.id)}
-                                                className={`w-full text-left p-4 rounded-xl border transition-all ${
+                                                className={`w-full text-left p-4 rounded-xl border transition-all flex justify-between items-center group ${
                                                     selectedClientId === client.id 
                                                         ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500' 
                                                         : 'bg-white border-slate-100 hover:border-indigo-300'
                                                 }`}
                                             >
-                                                <h3 className="font-bold text-slate-800">{client.firstName} {client.lastName}</h3>
-                                                <p className="text-xs text-slate-500">Unit {client.unit} • {client.email}</p>
+                                                <div>
+                                                    <h3 className="font-bold text-slate-800">{client.firstName} {client.lastName}</h3>
+                                                    <p className="text-xs text-slate-500">Unit {client.unit} • {client.email}</p>
+                                                </div>
+                                                <div 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setProfileEmail(client.email || null);
+                                                        setProfileName(`${client.firstName} ${client.lastName}`);
+                                                        setProfileUnit(client.unit || null);
+                                                        setIsProfileDrawerOpen(true);
+                                                    }}
+                                                    className="p-2 bg-white rounded-lg border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 hover:shadow-sm transition-all"
+                                                    title="View Intake Profile"
+                                                >
+                                                    <Eye className="w-4 h-4" />
+                                                </div>
                                             </button>
                                         ))
                                     )}
@@ -294,6 +329,14 @@ const LegalDashboard: React.FC = () => {
                 </div>
                 </div>
             )}
+
+            <ClientProfileDrawer 
+                isOpen={isProfileDrawerOpen} 
+                onClose={() => setIsProfileDrawerOpen(false)} 
+                tenantEmail={profileEmail} 
+                tenantName={profileName} 
+                tenantUnit={profileUnit}
+            />
         </div>
     );
 };

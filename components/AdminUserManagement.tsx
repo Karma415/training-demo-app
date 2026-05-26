@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { supabase } from '../services/supabase';
-import { Shield, ShieldAlert, Search, Users, ShieldCheck, User as UserIcon } from 'lucide-react';
+import { Shield, ShieldAlert, Search, Users, ShieldCheck, User as UserIcon, Eye } from 'lucide-react';
+import ClientProfileDrawer from './ClientProfileDrawer';
 
 const AdminUserManagement: React.FC = () => {
     const { tenants, setTenants, user } = useApp();
     const [searchQuery, setSearchQuery] = useState('');
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
+    const [isProfileDrawerOpen, setIsProfileDrawerOpen] = useState(false);
+    const [profileEmail, setProfileEmail] = useState<string | null>(null);
+    const [profileName, setProfileName] = useState('');
+    const [profileUnit, setProfileUnit] = useState<string | null>(null);
 
     const handleRoleChange = async (targetUserId: string, newRole: string) => {
         setIsUpdating(targetUserId);
@@ -134,18 +139,32 @@ const AdminUserManagement: React.FC = () => {
                                                     Updating
                                                 </div>
                                             ) : (
-                                                <select
-                                                    value={t.role || 'resident'}
-                                                    onChange={(e) => handleRoleChange(t.id, e.target.value)}
-                                                    disabled={user.role !== 'superadmin' && t.role === 'superadmin'} // Prevent normal admins from downgrading superadmins
-                                                    className={`appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
-                                                    style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
-                                                >
-                                                    <option value="resident">Resident / Tenant</option>
-                                                    <option value="legal_counsel">Legal Counsel</option>
-                                                    <option value="admin">Platform Admin</option>
-                                                    {user.role === 'superadmin' && <option value="superadmin">Super Admin</option>}
-                                                </select>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => {
+                                                            setProfileEmail(t.email || null);
+                                                            setProfileName(t.name || `${t.first_name || ''} ${t.last_name || ''}`.trim() || 'Unknown');
+                                                            setProfileUnit(t.unit || null);
+                                                            setIsProfileDrawerOpen(true);
+                                                        }}
+                                                        className="p-2 bg-white rounded-xl border border-slate-200 text-slate-400 hover:text-indigo-600 hover:border-indigo-300 hover:shadow-sm transition-all flex items-center justify-center"
+                                                        title="View Intake Profile"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </button>
+                                                    <select
+                                                        value={t.role || 'resident'}
+                                                        onChange={(e) => handleRoleChange(t.id, e.target.value)}
+                                                        disabled={user.role !== 'superadmin' && t.role === 'superadmin'} // Prevent normal admins from downgrading superadmins
+                                                        className={`appearance-none bg-white border border-slate-200 text-slate-700 text-sm font-bold rounded-xl px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 cursor-pointer shadow-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
+                                                    >
+                                                        <option value="resident">Resident / Tenant</option>
+                                                        <option value="legal_counsel">Legal Counsel</option>
+                                                        <option value="admin">Platform Admin</option>
+                                                        {user.role === 'superadmin' && <option value="superadmin">Super Admin</option>}
+                                                    </select>
+                                                </div>
                                             )}
                                         </div>
                                     </td>
@@ -155,6 +174,14 @@ const AdminUserManagement: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+            
+            <ClientProfileDrawer 
+                isOpen={isProfileDrawerOpen} 
+                onClose={() => setIsProfileDrawerOpen(false)} 
+                tenantEmail={profileEmail} 
+                tenantName={profileName} 
+                tenantUnit={profileUnit}
+            />
         </div>
     );
 };

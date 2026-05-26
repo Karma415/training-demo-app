@@ -1,0 +1,40 @@
+steps:
+  # 1. Build the Docker image using the existing multi-stage Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/sf-housing-hub-repo/frontend:$BUILD_ID'
+      - '-t'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/sf-housing-hub-repo/frontend:latest'
+      - '.'
+
+  # 2. Push the Docker image to Google Cloud Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/sf-housing-hub-repo/frontend'
+
+  # 3. Deploy the container to Google Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'sf-housing-hub-frontend'
+      - '--image'
+      - 'us-west1-docker.pkg.dev/$PROJECT_ID/sf-housing-hub-repo/frontend:latest'
+      - '--region'
+      - 'us-west1'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--platform'
+      - 'managed'
+
+images:
+  - 'us-west1-docker.pkg.dev/$PROJECT_ID/sf-housing-hub-repo/frontend:$BUILD_ID'
+  - 'us-west1-docker.pkg.dev/$PROJECT_ID/sf-housing-hub-repo/frontend:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

@@ -126,7 +126,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isOpen, onClose }) => {
           {isAdmin && (
             <div className="px-5 mb-6">
               <button 
-                onClick={() => setAdminViewMode(adminViewMode === 'global' ? 'personal' : 'global')}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setAdminViewMode(adminViewMode === 'global' ? 'personal' : 'global');
+                }}
                 className={`w-full flex items-center justify-between p-3 rounded-xl border ${
                   adminViewMode === 'global' 
                     ? 'bg-indigo-900/50 border-indigo-500/50 text-indigo-200' 
