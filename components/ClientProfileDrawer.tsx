@@ -15,8 +15,11 @@ const ClientProfileDrawer: React.FC<ClientProfileDrawerProps> = ({ isOpen, onClo
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  console.log("ClientProfileDrawer rendered, isOpen:", isOpen, "email:", tenantEmail, "name:", tenantName, "unit:", tenantUnit);
+
   useEffect(() => {
     if (isOpen && (tenantEmail || tenantName || tenantUnit)) {
+      console.log("ClientProfileDrawer useEffect fetching data for:", { tenantEmail, tenantName, tenantUnit });
       fetchIntakeData();
     }
   }, [isOpen, tenantEmail, tenantName, tenantUnit]);

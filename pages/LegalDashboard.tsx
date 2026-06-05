@@ -195,6 +195,7 @@ const LegalDashboard: React.FC = () => {
                                             <div
                                                 key={client.id}
                                                 onClick={() => {
+                                                    console.log("Tenant item clicked:", client);
                                                     setSelectedClientId(client.id);
                                                     setProfileEmail(client.email || null);
                                                     setProfileName(client.name || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unknown');
@@ -214,6 +215,7 @@ const LegalDashboard: React.FC = () => {
                                                 <div 
                                                     onClick={(e) => {
                                                         e.stopPropagation();
+                                                        console.log("Tenant eye button clicked:", client);
                                                         setProfileEmail(client.email || null);
                                                         setProfileName(client.name || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unknown');
                                                         setProfileUnit(client.unit || null);

@@ -325,8 +325,8 @@ const AdminFileCabinet: React.FC = () => {
           <button onClick={() => setShowNoticeDistributor(true)} className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
             <i className="fa-solid fa-bullhorn mr-1"></i> Letters/Notices
           </button>
-          <button onClick={() => setShowCodeGen(true)} className="px-3 py-2 bg-purple-500 text-white text-xs font-bold rounded-lg hover:bg-purple-600 transition-all hidden sm:block">
-            <i className="fa-solid fa-qrcode mr-1"></i> Invite
+          <button onClick={() => setShowCodeGen(true)} className="px-3 py-2 bg-purple-500 text-white text-xs font-bold rounded-lg hover:bg-purple-600 transition-all">
+            <i className="fa-solid fa-user-plus mr-1"></i> Invite / Create Account
           </button>
           <button onClick={() => setShowNewTemplate(true)} className="px-3 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all">
             <i className="fa-solid fa-plus mr-1"></i> Form/Task
@@ -570,7 +570,7 @@ const AdminFileCabinet: React.FC = () => {
                 onClick={() => setActiveTab('qr')}
                 className={`flex-1 pb-3 text-xs font-bold border-b-2 transition-all ${activeTab === 'qr' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
               >
-                Instant QR Login
+                Create Account (QR/Credentials)
               </button>
             </div>
 
