@@ -79,7 +79,7 @@ const LettersNotices: React.FC = () => {
           <Inbox className="w-8 h-8 text-indigo-600 mr-3" />
           Letters & Notices
         </h1>
-        <p className="text-slate-500 mt-2 font-medium">Official communications, lease updates, and important notices from management.</p>
+        <p className="text-slate-500 mt-2 font-medium">Official letters from your attorney, or building-wide notices sent by management posted here for reference.</p>
       </div>
 
       <div className="space-y-4">
@@ -88,8 +88,8 @@ const LettersNotices: React.FC = () => {
             <div className="w-16 h-16 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mx-auto mb-4">
               <FileText className="w-8 h-8" />
             </div>
-            <h3 className="text-lg font-bold text-slate-700">No notices yet</h3>
-            <p className="text-slate-500">You're all caught up! Any new letters will appear here.</p>
+            <h3 className="text-lg font-bold text-slate-700">No letters or notices yet</h3>
+            <p className="text-slate-500">You're all caught up! Any new letters or notices will appear here.</p>
           </div>
         ) : (
           letters.map((letter) => (
@@ -100,7 +100,7 @@ const LettersNotices: React.FC = () => {
                     <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-widest uppercase ${
                       letter.target_type === 'all' ? 'bg-indigo-50 text-indigo-600' : 'bg-emerald-50 text-emerald-600'
                     }`}>
-                      {letter.target_type === 'all' ? 'Building Announcement' : 'Personal Notice'}
+                      {letter.target_type === 'all' ? 'Building-wide Notice' : 'Attorney Letter'}
                     </span>
                     <span className="text-xs text-slate-400 font-bold">
                       {new Date(letter.created_at).toLocaleDateString()}

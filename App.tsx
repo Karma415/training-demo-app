@@ -31,8 +31,10 @@ import LeaseDecoderPage from './pages/LeaseDecoderPage';
 import TenantChecklist from './pages/TenantChecklist';
 import AdminFileCabinet from './pages/AdminFileCabinet';
 import LightweightSignup from './pages/LightweightSignup';
+import QrLogin from './pages/QrLogin';
 import LettersNotices from './pages/LettersNotices';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
 
 const isDemoMode =
   import.meta.env.VITE_DEMO_MODE === 'true' ||
@@ -303,6 +305,7 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<LightweightSignup />} />
+            <Route path="/qr-login" element={<QrLogin />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/onboarding" element={<Onboarding />} />
             <Route path="/*" element={

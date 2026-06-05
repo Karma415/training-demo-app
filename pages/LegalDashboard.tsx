@@ -194,7 +194,13 @@ const LegalDashboard: React.FC = () => {
                                         assignedClients.map(client => (
                                             <button
                                                 key={client.id}
-                                                onClick={() => setSelectedClientId(client.id)}
+                                                onClick={() => {
+                                                    setSelectedClientId(client.id);
+                                                    setProfileEmail(client.email || null);
+                                                    setProfileName(client.name || `${client.firstName || ''} ${client.lastName || ''}`.trim() || 'Unknown');
+                                                    setProfileUnit(client.unit || null);
+                                                    setIsProfileDrawerOpen(true);
+                                                }}
                                                 className={`w-full text-left p-4 rounded-xl border transition-all flex justify-between items-center group ${
                                                     selectedClientId === client.id 
                                                         ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500' 

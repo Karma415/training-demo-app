@@ -45,6 +45,18 @@ const AdminFileCabinet: React.FC = () => {
   const [showCodeGen, setShowCodeGen] = useState(false);
   const [newCodeUnit, setNewCodeUnit] = useState('');
 
+  // QR Logins State
+  const [qrLogins, setQrLogins] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'invite' | 'qr'>('invite');
+  const [newQrName, setNewQrName] = useState('');
+  const [newQrEmail, setNewQrEmail] = useState('');
+  const [newQrUnit, setNewQrUnit] = useState('');
+  const [newQrPassword, setNewQrPassword] = useState('');
+  const [isGeneratingQr, setIsGeneratingQr] = useState(false);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+
   // Tutorials & Notices State
   const [showTutorialManager, setShowTutorialManager] = useState(false);
   const [tutorialForm, setTutorialForm] = useState({ page_path: '', video_url: '' });
@@ -56,15 +68,17 @@ const AdminFileCabinet: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     try {
-      const [tenantsRes, checklistsRes, templatesRes, codesRes] = await Promise.all([
+      const [tenantsRes, checklistsRes, templatesRes, codesRes, qrLoginsRes] = await Promise.all([
         supabase.from('tenants').select('*').not('role', 'in', '("admin","superadmin","legal_counsel")').order('unit_number'),
         supabase.from('tenant_checklists').select('*, checklist_templates(title, description, form_url)'),
         supabase.from('checklist_templates').select('*').order('created_at', { ascending: false }),
         supabase.from('signup_codes').select('*').order('created_at', { ascending: false }),
+        supabase.from('tenant_qr_logins').select('*, tenants(first_name, last_name, unit_number)').order('created_at', { ascending: false })
       ]);
 
       if (templatesRes.data) setTemplates(templatesRes.data);
       if (codesRes.data) setSignupCodes(codesRes.data);
+      if (qrLoginsRes.data) setQrLogins(qrLoginsRes.data);
 
       const tenantList = tenantsRes.data || [];
       const checklists = checklistsRes.data || [];
@@ -155,6 +169,58 @@ const AdminFileCabinet: React.FC = () => {
     setNewCodeUnit('');
     fetchData();
   };
+
+  const createTenantWithQr = async () => {
+    if (!newQrName || !newQrEmail || !newQrUnit) {
+      setQrError('Please fill out all required fields.');
+      return;
+    }
+
+    setIsGeneratingQr(true);
+    setQrError(null);
+
+    try {
+      const nameParts = newQrName.trim().split(' ');
+      const firstName = nameParts[0] || '';
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+      const password = newQrPassword || 'pass_' + Math.random().toString(36).substring(2, 10) + '!';
+
+      const { data, error } = await supabase.rpc('admin_create_tenant_with_qr', {
+        p_email: newQrEmail.trim(),
+        p_first_name: firstName,
+        p_last_name: lastName,
+        p_unit_number: parseInt(newQrUnit, 10),
+        p_password: password
+      });
+
+      if (error) throw error;
+
+      setNewQrName('');
+      setNewQrEmail('');
+      setNewQrUnit('');
+      setNewQrPassword('');
+      fetchData();
+    } catch (err: any) {
+      console.error('Error creating tenant with QR:', err);
+      setQrError(err.message || 'Failed to create tenant.');
+    } finally {
+      setIsGeneratingQr(false);
+    }
+  };
+
+  const deleteQrLogin = async (token: string) => {
+    if (!confirm('Are you sure you want to revoke this QR login token? The resident will no longer be able to log in using this QR code.')) return;
+    try {
+      const { error } = await supabase.from('tenant_qr_logins').delete().eq('token', token);
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) {
+      console.error('Error deleting QR login:', err);
+      alert('Failed to revoke QR token: ' + err.message);
+    }
+  };
+
+
 
   const saveTutorial = async () => {
     if (!tutorialForm.page_path || !tutorialForm.video_url) return;
@@ -257,7 +323,7 @@ const AdminFileCabinet: React.FC = () => {
             <i className="fa-solid fa-play mr-1"></i> Tutorials
           </button>
           <button onClick={() => setShowNoticeDistributor(true)} className="px-3 py-2 bg-emerald-600 text-white text-xs font-bold rounded-lg hover:bg-emerald-700 transition-all">
-            <i className="fa-solid fa-bullhorn mr-1"></i> Notice
+            <i className="fa-solid fa-bullhorn mr-1"></i> Letters/Notices
           </button>
           <button onClick={() => setShowCodeGen(true)} className="px-3 py-2 bg-purple-500 text-white text-xs font-bold rounded-lg hover:bg-purple-600 transition-all hidden sm:block">
             <i className="fa-solid fa-qrcode mr-1"></i> Invite
@@ -490,37 +556,145 @@ const AdminFileCabinet: React.FC = () => {
       {showCodeGen && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Generate Invite Link</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Unit Number *</label>
-                <input className="w-full border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. 302" value={newCodeUnit} onChange={e => setNewCodeUnit(e.target.value)} />
-              </div>
-              <button onClick={generateSignupCode} className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700">
-                <i className="fa-solid fa-wand-magic-sparkles mr-2"></i>Generate Code
+            <h3 className="text-lg font-bold text-slate-800 mb-4">Resident Access & Onboarding</h3>
+            
+            {/* Tabs */}
+            <div className="flex border-b border-slate-100 mb-4">
+              <button
+                onClick={() => setActiveTab('invite')}
+                className={`flex-1 pb-3 text-xs font-bold border-b-2 transition-all ${activeTab === 'invite' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+              >
+                Self-Signup Invite
               </button>
-
-              {signupCodes.length > 0 && (
-                <div className="mt-4 max-h-48 overflow-y-auto space-y-2">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Existing Codes</p>
-                  {signupCodes.map(c => (
-                    <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border text-xs ${c.is_used ? 'bg-slate-50 border-slate-200 opacity-50' : 'bg-purple-50 border-purple-200'}`}>
-                      <div>
-                        <span className="font-mono font-bold text-purple-700">{c.code}</span>
-                        <span className="text-slate-400 ml-2">Unit {c.unit_number}</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {c.is_used ? <span className="text-slate-400">Used</span> : (
-                          <button onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/signup?code=${c.code}`); }}
-                            className="text-purple-600 hover:underline font-bold">Copy Link</button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <button
+                onClick={() => setActiveTab('qr')}
+                className={`flex-1 pb-3 text-xs font-bold border-b-2 transition-all ${activeTab === 'qr' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+              >
+                Instant QR Login
+              </button>
             </div>
-            <button onClick={() => setShowCodeGen(false)} className="w-full mt-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50">Close</button>
+
+            {activeTab === 'invite' ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Unit Number *</label>
+                  <input className="w-full border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g. 302" value={newCodeUnit} onChange={e => setNewCodeUnit(e.target.value)} />
+                </div>
+                <button onClick={generateSignupCode} className="w-full py-2.5 bg-purple-600 text-white rounded-xl text-sm font-bold hover:bg-purple-700">
+                  <i className="fa-solid fa-wand-magic-sparkles mr-2"></i>Generate Invite Code
+                </button>
+
+                {signupCodes.length > 0 && (
+                  <div className="mt-4 max-h-48 overflow-y-auto space-y-2">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Existing Invite Codes</p>
+                    {signupCodes.map(c => (
+                      <div key={c.id} className={`flex items-center justify-between p-3 rounded-xl border text-xs ${c.is_used ? 'bg-slate-50 border-slate-200 opacity-50' : 'bg-purple-50 border-purple-200'}`}>
+                        <div>
+                          <span className="font-mono font-bold text-purple-700">{c.code}</span>
+                          <span className="text-slate-400 ml-2">Unit {c.unit_number}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {c.is_used ? <span className="text-slate-400">Used</span> : (
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(`${window.location.origin}/signup?code=${c.code}`);
+                                setCopiedId(c.id);
+                                setTimeout(() => setCopiedId(null), 1500);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${copiedId === c.id ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'text-purple-600 hover:underline font-bold'}`}
+                            >
+                              {copiedId === c.id ? 'Copied!' : 'Copy Link'}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Full Name *</label>
+                    <input className="w-full border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. Jane Doe" value={newQrName} onChange={e => setNewQrName(e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Email Address *</label>
+                    <input type="email" className="w-full border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. jane.doe@example.com" value={newQrEmail} onChange={e => setNewQrEmail(e.target.value)} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Unit Number *</label>
+                      <input className="w-full border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" placeholder="e.g. 302" value={newQrUnit} onChange={e => setNewQrUnit(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Password (Optional)</label>
+                      <input type="password" className="w-full border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Auto-generated if blank" value={newQrPassword} onChange={e => setNewQrPassword(e.target.value)} />
+                    </div>
+                  </div>
+
+                  {qrError && (
+                    <div className="text-xs text-rose-500 font-bold bg-rose-50 p-2.5 rounded-xl border border-rose-100">
+                      {qrError}
+                    </div>
+                  )}
+
+                  <button onClick={createTenantWithQr} disabled={isGeneratingQr} className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                    {isGeneratingQr ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Creating Account...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fa-solid fa-qrcode mr-1"></i>Create Account & Generate QR
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {qrLogins.length > 0 && (
+                  <div className="mt-4 max-h-48 overflow-y-auto space-y-2 border-t border-slate-100 pt-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Existing QR Logins</p>
+                    {qrLogins.map(q => {
+                      const tenantName = q.tenants ? `${q.tenants.first_name || ''} ${q.tenants.last_name || ''}`.trim() : q.email;
+                      const unit = q.tenants?.unit_number || 'N/A';
+                      const link = `${window.location.origin}/qr-login?token=${q.token}`;
+                      return (
+                        <div key={q.token} className="flex items-center justify-between p-3 rounded-xl border border-slate-150 bg-slate-50/55 text-xs">
+                          <div className="min-w-0 flex-1 pr-2">
+                            <p className="font-bold text-slate-700 truncate">{tenantName}</p>
+                            <p className="text-[10px] text-slate-500 font-medium">Unit {unit} • {q.email}</p>
+                          </div>
+                          <div className="flex items-center space-x-2 flex-shrink-0">
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText(link);
+                                setCopiedId(q.token);
+                                setTimeout(() => setCopiedId(null), 1500);
+                              }}
+                              className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-all ${copiedId === q.token ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-white border border-slate-200 text-slate-600 hover:text-indigo-600 hover:border-indigo-300'}`}
+                            >
+                              {copiedId === q.token ? 'Copied!' : 'Copy Link'}
+                            </button>
+                            <button
+                              onClick={() => deleteQrLogin(q.token)}
+                              className="p-1.5 bg-white border border-slate-200 rounded-lg text-slate-400 hover:text-rose-600 hover:border-rose-350 transition-all"
+                              title="Revoke QR Token"
+                            >
+                              <i className="fa-solid fa-trash-can text-xs"></i>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <button onClick={() => { setShowCodeGen(false); setQrError(null); }} className="w-full mt-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50">Close</button>
           </div>
         </div>
       )}
