@@ -192,7 +192,7 @@ const LegalDashboard: React.FC = () => {
                                         <p className="text-sm text-slate-400 text-center py-8">No clients assigned yet.</p>
                                     ) : (
                                         assignedClients.map(client => (
-                                            <button
+                                            <div
                                                 key={client.id}
                                                 onClick={() => {
                                                     setSelectedClientId(client.id);
@@ -201,7 +201,7 @@ const LegalDashboard: React.FC = () => {
                                                     setProfileUnit(client.unit || null);
                                                     setIsProfileDrawerOpen(true);
                                                 }}
-                                                className={`w-full text-left p-4 rounded-xl border transition-all flex justify-between items-center group ${
+                                                className={`w-full text-left p-4 rounded-xl border transition-all flex justify-between items-center group cursor-pointer ${
                                                     selectedClientId === client.id 
                                                         ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-500' 
                                                         : 'bg-white border-slate-100 hover:border-indigo-300'
@@ -224,7 +224,7 @@ const LegalDashboard: React.FC = () => {
                                                 >
                                                     <Eye className="w-4 h-4" />
                                                 </div>
-                                            </button>
+                                            </div>
                                         ))
                                     )}
                                 </div>
