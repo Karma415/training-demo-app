@@ -22,7 +22,7 @@ export const supabaseConfig = {
 const fallbackSupabaseUrl = 'https://missing-env.supabase.co';
 const fallbackSupabaseAnonKey = 'missing-env-anon-key';
 
-const rawSupabase = createClient(
+export const rawSupabase = createClient(
     normalizedSupabaseUrl || fallbackSupabaseUrl,
     normalizedSupabaseAnonKey || fallbackSupabaseAnonKey
 );

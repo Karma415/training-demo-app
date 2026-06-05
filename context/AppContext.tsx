@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
 import { Issue, Tenant, Communication, Notification, Todo, DBIComplaint, BuildingRedactedIssue, InteractionLogEntry, LegalNotice, HabitabilityRule } from '../types';
-import { supabase } from '../services/supabase';
+import { supabase, rawSupabase } from '../services/supabase';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 
@@ -314,33 +314,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
                     temporaryMoveOutDate: t.temp_move_out_date
                 }));
                 setTenants(mappedTenants);
+            }
 
-                // 2. Find current user profile
-                const currentUser = mappedTenants.find(t => t.id === uid);
-                if (currentUser) {
-                    currentRole = currentUser.role || 'tenant';
-                    setUser({
-                        id: currentUser.id,
-                        supabaseId: currentUser.id,
-                        name: currentUser.name,
-                        firstName: currentUser.firstName,
-                        lastName: currentUser.lastName,
-                        unit: currentUser.unit,
-                        email: currentUser.email,
-                        phone: currentUser.phone,
-                        monthlyRent: Number(currentUser.monthlyRent) || 0,
-                        status: currentUser.status,
-                        role: currentRole as any,
-                        moveInDate: currentUser.moveInDate,
-                        leaseAnalyzed: false,
-                        avatarUrl: currentUser.avatarUrl,
-                        requestsAttorney: currentUser.requestsAttorney,
-                        is_lightweight: currentUser.is_lightweight,
-                        temporaryUnit: currentUser.temporaryUnit,
-                        temporaryMoveInDate: currentUser.temporaryMoveInDate,
-                        temporaryMoveOutDate: currentUser.temporaryMoveOutDate
-                    });
-                }
+            // Fetch the current user profile directly bypassing is_dev proxy filter
+            const { data: currentUserRow } = await rawSupabase
+                .from("tenants")
+                .select("*")
+                .eq("id", uid)
+                .single();
+
+            if (currentUserRow) {
+                currentRole = currentUserRow.role || 'tenant';
+                setUser({
+                    id: currentUserRow.id,
+                    supabaseId: currentUserRow.id,
+                    name: `${currentUserRow.first_name || ''} ${currentUserRow.last_name || ''}`.trim() || 'Unknown',
+                    firstName: currentUserRow.first_name,
+                    lastName: currentUserRow.last_name,
+                    unit: currentUserRow.unit_number ? currentUserRow.unit_number.toString() : 'N/A',
+                    email: currentUserRow.email,
+                    phone: currentUserRow.phone,
+                    monthlyRent: Number(currentUserRow.monthly_rent) || 0,
+                    status: currentUserRow.status,
+                    role: currentRole as any,
+                    moveInDate: currentUserRow.move_in_date || '',
+                    leaseAnalyzed: false,
+                    avatarUrl: currentUserRow.avatar_url || undefined,
+                    requestsAttorney: currentUserRow.requests_attorney || false,
+                    is_lightweight: currentUserRow.is_lightweight || false,
+                    temporaryUnit: currentUserRow.temporary_unit?.toString(),
+                    temporaryMoveInDate: currentUserRow.temp_move_in_date,
+                    temporaryMoveOutDate: currentUserRow.temp_move_out_date
+                });
+            } else {
+                console.warn("User profile not found in database via direct fetch, falling back to auth metadata or defaults");
             }
 
             // 3. Fetch Issues
