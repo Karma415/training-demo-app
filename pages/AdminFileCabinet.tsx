@@ -185,7 +185,7 @@ const AdminFileCabinet: React.FC = () => {
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       const password = newQrPassword || 'pass_' + Math.random().toString(36).substring(2, 10) + '!';
 
-      const { data, error } = await supabase.rpc('admin_create_tenant_with_qr', {
+      const { error } = await supabase.rpc('admin_create_tenant_with_qr', {
         p_email: newQrEmail.trim(),
         p_first_name: firstName,
         p_last_name: lastName,

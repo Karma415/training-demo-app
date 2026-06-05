@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, User, MapPin, Briefcase, AlertTriangle, Globe, Calendar, Phone, Mail } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { X, User, AlertTriangle, Calendar, Phone, Mail } from 'lucide-react';
 import { supabase } from '../services/supabase';
 
 interface ClientProfileDrawerProps {
@@ -70,14 +71,14 @@ const ClientProfileDrawer: React.FC<ClientProfileDrawerProps> = ({ isOpen, onClo
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       <div 
-        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 transition-opacity"
+        className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[999] transition-opacity"
         onClick={onClose}
       />
       
-      <div className={`fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-50 transform transition-transform duration-300 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
+      <div className={`fixed inset-y-0 right-0 w-full max-w-2xl bg-white shadow-2xl z-[1000] transform transition-transform duration-300 flex flex-col ${isOpen ? 'translate-x-0' : 'translate-x-full'}`}>
         <div className="flex justify-between items-center p-6 border-b border-slate-100 bg-slate-50/80">
           <div>
             <h2 className="text-2xl font-black text-slate-800 flex items-center gap-3">
@@ -221,7 +222,8 @@ const ClientProfileDrawer: React.FC<ClientProfileDrawerProps> = ({ isOpen, onClo
           ) : null}
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 };
 
