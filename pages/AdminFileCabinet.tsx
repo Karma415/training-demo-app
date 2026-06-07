@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../services/supabase';
+import QRCode from 'qrcode';
 
 interface TenantFile {
   id: string;
@@ -55,6 +56,25 @@ const AdminFileCabinet: React.FC = () => {
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [qrError, setQrError] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [generatedQrDetails, setGeneratedQrDetails] = useState<{
+    name: string;
+    email: string;
+    link: string;
+    password_plain: string;
+  } | null>(null);
+  const [copiedDetailsType, setCopiedDetailsType] = useState<'link' | 'pass' | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+
+  useEffect(() => {
+    if (generatedQrDetails?.link) {
+      QRCode.toDataURL(generatedQrDetails.link, { width: 250, margin: 2 }, (err, url) => {
+        if (err) console.error('Error generating QR code:', err);
+        else setQrDataUrl(url);
+      });
+    } else {
+      setQrDataUrl('');
+    }
+  }, [generatedQrDetails?.link]);
 
 
   // Tutorials & Notices State
@@ -185,7 +205,7 @@ const AdminFileCabinet: React.FC = () => {
       const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
       const password = newQrPassword || 'pass_' + Math.random().toString(36).substring(2, 10) + '!';
 
-      const { error } = await supabase.rpc('admin_create_tenant_with_qr', {
+      const { data: token, error } = await supabase.rpc('admin_create_tenant_with_qr', {
         p_email: newQrEmail.trim(),
         p_first_name: firstName,
         p_last_name: lastName,
@@ -194,6 +214,14 @@ const AdminFileCabinet: React.FC = () => {
       });
 
       if (error) throw error;
+
+      const link = `${window.location.origin}/qr-login?token=${token}`;
+      setGeneratedQrDetails({
+        name: newQrName.trim(),
+        email: newQrEmail.trim(),
+        link,
+        password_plain: password
+      });
 
       setNewQrName('');
       setNewQrEmail('');
@@ -670,6 +698,19 @@ const AdminFileCabinet: React.FC = () => {
                           <div className="flex items-center space-x-2 flex-shrink-0">
                             <button
                               onClick={() => {
+                                setGeneratedQrDetails({
+                                  name: tenantName,
+                                  email: q.email,
+                                  link,
+                                  password_plain: q.password_plain || 'N/A (already created)'
+                                });
+                              }}
+                              className="px-2.5 py-1.5 bg-indigo-50 border border-indigo-150 text-indigo-700 rounded-lg text-[11px] font-bold hover:bg-indigo-100 hover:border-indigo-300 transition-all"
+                            >
+                              Show QR
+                            </button>
+                            <button
+                              onClick={() => {
                                 navigator.clipboard.writeText(link);
                                 setCopiedId(q.token);
                                 setTimeout(() => setCopiedId(null), 1500);
@@ -790,6 +831,238 @@ const AdminFileCabinet: React.FC = () => {
               <button onClick={() => setShowNoticeDistributor(false)} className="flex-1 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-500 hover:bg-slate-50" disabled={isUploadingNotice}>Cancel</button>
               <button onClick={distributeNotice} disabled={isUploadingNotice || !noticeForm.title} className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center">
                 {isUploadingNotice ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Distribute'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Presentation Modal */}
+      {generatedQrDetails && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-100 flex flex-col animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-6 bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-center relative">
+              <div className="w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-inner">
+                <i className="fa-solid fa-qrcode text-white text-3xl"></i>
+              </div>
+              <h3 className="text-xl font-black">QR Login Generated</h3>
+              <p className="text-indigo-100 text-xs mt-1">Intake account ready for resident hand-off</p>
+            </div>
+
+            {/* Body */}
+            <div className="p-6 space-y-5 flex-1 overflow-y-auto">
+              {/* QR code image */}
+              <div className="flex flex-col items-center justify-center p-4 border border-slate-100 bg-slate-50/50 rounded-2xl">
+                <img
+                  src={qrDataUrl}
+                  alt="Resident QR Code"
+                  className="w-44 h-44 bg-white p-2 border border-slate-100 rounded-xl shadow-sm"
+                />
+                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider mt-3">Scan to Log In Instantly</span>
+              </div>
+
+              {/* Details */}
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Resident</label>
+                  <p className="text-sm font-bold text-slate-800">{generatedQrDetails.name} ({generatedQrDetails.email})</p>
+                </div>
+
+                {/* Link Input with Copy */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Magic Login Link</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={generatedQrDetails.link}
+                      className="flex-1 text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50 text-slate-600 outline-none select-all font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedQrDetails.link);
+                        setCopiedDetailsType('link');
+                        setTimeout(() => setCopiedDetailsType(null), 1500);
+                      }}
+                      className={`p-2.5 rounded-xl border flex items-center justify-center transition-all ${copiedDetailsType === 'link' ? 'bg-emerald-100 border-emerald-200 text-emerald-700 font-bold text-xs px-3' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300'}`}
+                    >
+                      {copiedDetailsType === 'link' ? 'Copied' : <i className="fa-solid fa-copy"></i>}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password Input with Copy */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Temporary Password</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={generatedQrDetails.password_plain}
+                      className="flex-1 text-xs border border-slate-200 rounded-xl p-2.5 bg-slate-50 text-slate-600 outline-none select-all font-mono"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(generatedQrDetails.password_plain);
+                        setCopiedDetailsType('pass');
+                        setTimeout(() => setCopiedDetailsType(null), 1500);
+                      }}
+                      className={`p-2.5 rounded-xl border flex items-center justify-center transition-all ${copiedDetailsType === 'pass' ? 'bg-emerald-100 border-emerald-200 text-emerald-700 font-bold text-xs px-3' : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-300'}`}
+                    >
+                      {copiedDetailsType === 'pass' ? 'Copied' : <i className="fa-solid fa-copy"></i>}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 flex gap-3">
+              <button
+                onClick={() => {
+                  const printWindow = window.open('', '_blank');
+                  if (!printWindow) return;
+                  const qrCodeUrl = qrDataUrl;
+                  printWindow.document.write(`
+                    <html>
+                    <head>
+                      <title>Resident Portal Credentials - ${generatedQrDetails.name}</title>
+                      <style>
+                        body {
+                          font-family: system-ui, -apple-system, sans-serif;
+                          padding: 40px;
+                          color: #1e293b;
+                          max-width: 600px;
+                          margin: 0 auto;
+                          line-height: 1.5;
+                        }
+                        .header {
+                          text-align: center;
+                          border-bottom: 2px solid #e2e8f0;
+                          padding-bottom: 20px;
+                          margin-bottom: 30px;
+                        }
+                        .logo {
+                          font-size: 24px;
+                          font-weight: 800;
+                          color: #4f46e5;
+                          margin-bottom: 5px;
+                        }
+                        .subtitle {
+                          font-size: 14px;
+                          color: #64748b;
+                        }
+                        .qr-container {
+                          text-align: center;
+                          margin: 30px 0;
+                          padding: 20px;
+                          border: 1px solid #e2e8f0;
+                          border-radius: 12px;
+                          background: #f8fafc;
+                        }
+                        .qr-image {
+                          width: 200px;
+                          height: 200px;
+                          margin-bottom: 15px;
+                        }
+                        .instructions {
+                          font-size: 14px;
+                          margin-top: 20px;
+                        }
+                        .credentials {
+                          margin-top: 30px;
+                          padding: 15px;
+                          background: #f1f5f9;
+                          border-radius: 8px;
+                          font-size: 14px;
+                        }
+                        .credential-row {
+                          display: flex;
+                          justify-content: space-between;
+                          margin-bottom: 8px;
+                        }
+                        .credential-row:last-child {
+                          margin-bottom: 0;
+                        }
+                        .label {
+                          font-weight: bold;
+                          color: #475569;
+                        }
+                        .value {
+                          font-family: monospace;
+                          font-weight: bold;
+                        }
+                        @media print {
+                          body { padding: 20px; }
+                          .no-print { display: none; }
+                        }
+                      </style>
+                    </head>
+                    <body>
+                      <div class="header">
+                        <div class="logo">SF Housing Hub</div>
+                        <div class="subtitle">Resident Action Portal Credentials</div>
+                      </div>
+                      
+                      <p>Hello <strong>${generatedQrDetails.name}</strong>,</p>
+                      <p>Your Resident intake account has been successfully set up. You can log in using either the QR Code below or the credentials list.</p>
+                      
+                      <div class="qr-container">
+                        <img class="qr-image" src="${qrCodeUrl}" alt="QR Code Login" />
+                        <div style="font-weight: bold; font-size: 16px; color: #4f46e5;">Scan to Log In Instantly</div>
+                        <div style="font-size: 12px; color: #64748b; margin-top: 5px;">Open your phone camera to scan and authenticate instantly.</div>
+                      </div>
+                      
+                      <div class="instructions">
+                        <strong>How to log in:</strong>
+                        <ol>
+                          <li>Scan the QR code with your smartphone camera, or</li>
+                          <li>Go to the link printed below, or</li>
+                          <li>Use your email and temporary password to log in manually.</li>
+                        </ol>
+                      </div>
+                      
+                      <div class="credentials">
+                        <div class="credential-row">
+                          <span class="label">Magic Link:</span>
+                          <span class="value" style="word-break: break-all; font-size: 11px;">${generatedQrDetails.link}</span>
+                        </div>
+                        <div class="credential-row" style="margin-top: 10px;">
+                          <span class="label">Email:</span>
+                          <span class="value">${generatedQrDetails.email}</span>
+                        </div>
+                        <div class="credential-row">
+                          <span class="label">Temporary Password:</span>
+                          <span class="value">${generatedQrDetails.password_plain}</span>
+                        </div>
+                      </div>
+                      
+                      <div style="margin-top: 40px; text-align: center;" class="no-print">
+                        <button onclick="window.print()" style="padding: 10px 20px; background: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer;">Print This Sheet</button>
+                      </div>
+                      
+                      <script>
+                        window.onload = function() {
+                          setTimeout(function() {
+                            window.print();
+                          }, 500);
+                        }
+                      </script>
+                    </body>
+                    </html>
+                  `);
+                  printWindow.document.close();
+                }}
+                className="flex-1 py-3 px-4 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-1.5 transition-all"
+              >
+                <i className="fa-solid fa-print"></i> Print Sheet
+              </button>
+              <button
+                onClick={() => setGeneratedQrDetails(null)}
+                className="flex-1 py-3 px-4 bg-slate-800 text-white rounded-xl text-sm font-bold hover:bg-slate-900 transition-all text-center"
+              >
+                Close
               </button>
             </div>
           </div>
