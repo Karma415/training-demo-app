@@ -859,7 +859,42 @@ const AdminFileCabinet: React.FC = () => {
                   alt="Resident QR Code"
                   className="w-44 h-44 bg-white p-2 border border-slate-100 rounded-xl shadow-sm"
                 />
-                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider mt-3">Scan to Log In Instantly</span>
+                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider mt-3 mb-2">Scan to Log In Instantly</span>
+                <div className="flex gap-2 w-full max-w-xs mt-1">
+                  <button
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(qrDataUrl);
+                        const blob = await response.blob();
+                        await navigator.clipboard.write([
+                          new ClipboardItem({
+                            [blob.type]: blob
+                          })
+                        ]);
+                        alert('QR Code image copied to clipboard!');
+                      } catch (err) {
+                        console.error('Failed to copy image:', err);
+                        alert('Failed to copy image to clipboard. Please right-click the QR image to copy it.');
+                      }
+                    }}
+                    className="flex-1 py-1.5 px-3 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-600 hover:text-indigo-600 hover:border-indigo-305 transition-all flex items-center justify-center gap-1"
+                  >
+                    Copy Image
+                  </button>
+                  <button
+                    onClick={() => {
+                      const link = document.createElement('a');
+                      link.href = qrDataUrl;
+                      link.download = `QR_Login_${generatedQrDetails.name.replace(/\s+/g, '_')}.png`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    className="flex-1 py-1.5 px-3 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-700 hover:bg-indigo-100 transition-all flex items-center justify-center gap-1"
+                  >
+                    Download PNG
+                  </button>
+                </div>
               </div>
 
               {/* Details */}
