@@ -153,6 +153,16 @@ const AdminFileCabinet: React.FC = () => {
     fetchData();
   };
 
+  const deleteChecklistItem = async (itemId: string, itemTitle: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${itemTitle}" from this tenant's checklist?`)) return;
+    const { error } = await supabase.from('tenant_checklists').delete().eq('id', itemId);
+    if (error) {
+      alert('Failed to delete checklist item: ' + error.message);
+    } else {
+      fetchData();
+    }
+  };
+
   const createTemplate = async () => {
     if (!newTemplate.title) return;
     const { error } = await supabase.from('checklist_templates').insert({
@@ -484,6 +494,13 @@ const AdminFileCabinet: React.FC = () => {
                         </p>
                       )}
                     </div>
+
+                    {/* Delete item button */}
+                    <button onClick={() => deleteChecklistItem(item.id, item.title)}
+                      className="w-8 h-8 rounded-lg bg-red-50 hover:bg-red-100 flex items-center justify-center transition-all cursor-pointer text-red-500 shrink-0 border-0"
+                      title="Delete checklist item">
+                      <i className="fa-solid fa-trash-can text-xs"></i>
+                    </button>
                   </div>
                 </div>
               );
