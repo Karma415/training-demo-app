@@ -97,7 +97,11 @@ BEGIN
         raw_app_meta_data,
         raw_user_meta_data,
         created_at,
-        updated_at
+        updated_at,
+        confirmation_token,
+        recovery_token,
+        email_change_token_new,
+        email_change
     )
     VALUES (
         '00000000-0000-0000-0000-000000000000',
@@ -117,7 +121,11 @@ BEGIN
             'is_dev', p_is_dev
         ),
         now(),
-        now()
+        now(),
+        '',
+        '',
+        '',
+        ''
     )
     RETURNING id INTO new_user_id;
 
