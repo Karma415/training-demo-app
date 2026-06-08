@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, Link } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
@@ -183,17 +183,19 @@ const MainLayout: React.FC = () => {
             >
               <i className="fa-solid fa-bars text-lg"></i>
             </button>
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg overflow-hidden bg-[#1e3a8a]">
-              {user.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-              ) : (
-                <>{(user.firstName || user.name)?.charAt(0)}{user.lastName?.charAt(0) || ''}</>
-              )}
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-800">{user.name}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Unit {user.unit}</p>
-            </div>
+            <Link to="/profile" className="flex items-center space-x-3 sm:space-x-4 hover:opacity-85 active:scale-[0.99] transition-all">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-lg overflow-hidden bg-[#1e3a8a] shrink-0">
+                {user.avatarUrl ? (
+                  <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <>{(user.firstName || user.name)?.charAt(0)}{user.lastName?.charAt(0) || ''}</>
+                )}
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-800 leading-tight">{user.name}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Unit {user.unit}</p>
+              </div>
+            </Link>
           </div>
           <div className="flex items-center space-x-6">
             <div className="text-right border-r pr-6 hidden sm:block">

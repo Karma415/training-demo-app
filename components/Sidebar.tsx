@@ -103,7 +103,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onLogout, isOpen, onClose }) => {
 
       {/* Sidebar */}
       <aside className={`
-        w-64 bg-[#1e3a8a] text-white min-h-screen flex flex-col shadow-xl z-50
+        w-64 bg-[#1e3a8a] text-white h-screen h-[100dvh] flex flex-col shadow-xl z-50
         fixed lg:sticky top-0 shrink-0
         transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
