@@ -169,6 +169,15 @@ const TenantChecklist: React.FC = () => {
     );
   }
 
+  const getBorderClass = (item: ChecklistItem) => {
+    if (item.status === 'completed') return 'border-l-emerald-500 border-y-slate-200 border-r-slate-200';
+    if (isPastDue(item)) return 'border-l-red-500 border-y-red-200 border-r-red-200 bg-red-50/10';
+    if (item.urgency_level === 'Critical') return 'border-l-red-500 border-y-slate-200 border-r-slate-200';
+    if (item.urgency_level === 'Urgent') return 'border-l-orange-500 border-y-slate-200 border-r-slate-200';
+    if (item.urgency_level === 'High') return 'border-l-amber-500 border-y-slate-200 border-r-slate-200';
+    return 'border-l-blue-500 border-y-slate-200 border-r-slate-200';
+  };
+
   return (
     <div>
       {/* Header */}
@@ -234,71 +243,72 @@ const TenantChecklist: React.FC = () => {
           {items.map((item, index) => (
             <div
               key={item.id}
-              className={`bg-white rounded-2xl shadow-sm border transition-all hover:shadow-md ${
-                isPastDue(item) ? 'border-red-300 bg-red-50/50' : 'border-slate-200'
-              }`}
+              className={`bg-white rounded-2xl shadow-sm border-y border-r border-l-4 transition-all hover:shadow-md ${getBorderClass(item)}`}
             >
-              <div className="p-5 flex items-center space-x-4">
-                <span className="text-xs font-bold text-slate-400 w-6 text-center">{index + 1}.</span>
-
-                {/* Status checkbox (completion) */}
-                {getStatusIcon(item)}
-
-                {/* Admin read checkbox */}
-                {getAdminReadIcon(item)}
-
-                {/* Task info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center space-x-2">
-                    <h3 className={`font-bold text-sm ${isPastDue(item) ? 'text-red-700' : 'text-slate-800'}`}>
-                      {item.title}
-                    </h3>
-                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md ${
-                      item.urgency_level === 'Critical' ? 'bg-red-100 text-red-700 border border-red-200' :
-                      item.urgency_level === 'Urgent' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
-                      item.urgency_level === 'High' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
-                      item.urgency_level === 'Low' ? 'bg-slate-100 text-slate-600 border border-slate-200' :
-                      'bg-blue-50 text-blue-600 border border-blue-200'
-                    }`}>
-                      {item.urgency_level}
-                    </span>
+              <div className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                
+                {/* Left Side: Index, status checkboxes, title, description, deadline */}
+                <div className="flex items-start space-x-4 flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 shrink-0 mt-0.5">
+                    <span className="text-xs font-bold text-slate-400 w-5 text-center">{index + 1}.</span>
+                    {getStatusIcon(item)}
+                    {getAdminReadIcon(item)}
                   </div>
-                  {item.description && (
-                    <p className="text-slate-500 text-xs mt-0.5 truncate">{item.description}</p>
-                  )}
-                  {item.deadline && (
-                    <p className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${
-                      isPastDue(item) ? 'text-red-500' : 'text-slate-400'
-                    }`}>
-                      <i className="fa-solid fa-calendar mr-1"></i>
-                      Due: {new Date(item.deadline + 'T00:00:00').toLocaleDateString()}
-                    </p>
-                  )}
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className={`font-bold text-sm leading-snug ${isPastDue(item) ? 'text-red-700' : 'text-slate-800'}`}>
+                        {item.title}
+                      </h3>
+                      <span className={`px-2 py-0.5 text-[9px] font-black uppercase tracking-widest rounded-md shrink-0 ${
+                        item.urgency_level === 'Critical' ? 'bg-red-100 text-red-700 border border-red-200' :
+                        item.urgency_level === 'Urgent' ? 'bg-orange-100 text-orange-700 border border-orange-200' :
+                        item.urgency_level === 'High' ? 'bg-amber-100 text-amber-700 border border-amber-200' :
+                        item.urgency_level === 'Low' ? 'bg-slate-100 text-slate-600 border border-slate-200' :
+                        'bg-blue-50 text-blue-600 border border-blue-200'
+                      }`}>
+                        {item.urgency_level}
+                      </span>
+                    </div>
+                    {item.description && (
+                      <p className="text-slate-500 text-xs mt-1 leading-relaxed break-words">{item.description}</p>
+                    )}
+                    {item.deadline && (
+                      <p className={`text-[10px] font-bold uppercase tracking-widest mt-2 flex items-center gap-1.5 ${
+                        isPastDue(item) ? 'text-red-500' : 'text-slate-400'
+                      }`}>
+                        <i className="fa-solid fa-calendar text-xs"></i>
+                        <span>Due: {new Date(item.deadline + 'T00:00:00').toLocaleDateString()}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center space-x-2 shrink-0">
+                {/* Right Side: Actions */}
+                <div className="flex items-center justify-end md:justify-start gap-2 pt-3 md:pt-0 border-t md:border-0 border-slate-100 shrink-0">
                   {item.form_url && item.status !== 'completed' && (
                     <button
                       onClick={() => { setActiveFormUrl(item.form_url); setActiveFormTitle(item.title); }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white text-xs font-bold rounded-lg hover:brightness-110 transition-all shadow-sm"
+                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                     >
-                      <i className="fa-solid fa-pen-to-square mr-1"></i> Fill Form
+                      <i className="fa-solid fa-pen-to-square"></i>
+                      <span>Fill Form</span>
                     </button>
                   )}
                   {item.status !== 'completed' && (
                     <button
                       onClick={() => markCompleted(item.id)}
-                      className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold rounded-lg hover:bg-emerald-600 transition-all shadow-sm"
+                      className="px-4 py-2 bg-emerald-500 text-white text-xs font-bold rounded-xl hover:bg-emerald-600 active:scale-95 transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                       title="Mark as completed"
                     >
-                      <i className="fa-solid fa-check mr-1"></i> Done
+                      <i className="fa-solid fa-check"></i>
+                      <span>Done</span>
                     </button>
                   )}
                   {item.status === 'completed' && (
-                    <span className="text-xs text-emerald-600 font-bold flex items-center space-x-1">
+                    <span className="px-3 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center gap-1.5">
                       <i className="fa-solid fa-circle-check"></i>
-                      <span>Submitted</span>
+                      <span>Submitted & Completed</span>
                     </span>
                   )}
                 </div>
